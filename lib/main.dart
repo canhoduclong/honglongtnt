@@ -9,6 +9,7 @@ import 'services/auth_service.dart';
 import 'services/order_service.dart';
 import 'services/notification_service.dart';
 import 'services/role_screen_service.dart';
+import 'services/sale_service.dart';
 import 'services/storage_service.dart';
 import 'services/update_service.dart';
 
@@ -34,6 +35,7 @@ Future<void> main() async {
     RoleScreenService(Get.find<ApiService>()),
     permanent: true,
   );
+  Get.put<SaleService>(SaleService(Get.find<ApiService>()), permanent: true);
   Get.put<AuthController>(
     AuthController(Get.find<AuthService>()),
     permanent: true,

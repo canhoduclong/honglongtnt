@@ -67,6 +67,24 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> putJson(String path, {Object? data}) async {
+    try {
+      final response = await dio.put(path, data: data);
+      return _normalize(response);
+    } on DioException catch (error) {
+      throw _toApiException(error);
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteJson(String path, {Object? data}) async {
+    try {
+      final response = await dio.delete(path, data: data);
+      return _normalize(response);
+    } on DioException catch (error) {
+      throw _toApiException(error);
+    }
+  }
+
   Map<String, dynamic> _normalize(Response response) {
     final data = response.data;
     if (data is Map<String, dynamic>) {
