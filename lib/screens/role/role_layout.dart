@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../models/order_model.dart';
@@ -9,6 +10,7 @@ import '../../models/user_model.dart';
 import '../../services/notification_service.dart';
 import '../../services/role_screen_service.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/app_notification_card.dart';
 import '../../widgets/shipper_account_menu.dart';
 
 class RoleLayout extends StatefulWidget {
@@ -346,36 +348,8 @@ class _NotificationSheetState extends State<_NotificationSheet> {
               )
             else
               for (final item in data.items) ...[
-                ListTile(
-                  tileColor: item.isUnread
-                      ? const Color(0xFFEFF6FF)
-                      : Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  leading: Icon(
-                    _notificationIcon(item.priority),
-                    color: _notificationColor(item.priority),
-                  ),
-                  title: Text(
-                    item.title,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  subtitle: Text(
-                    [
-                      if (item.message.isNotEmpty) item.message,
-                      'Mức độ: ${_priorityLabel(item.priority)}',
-                      if (item.createdAt.isNotEmpty)
-                        Formatters.dateTime(item.createdAt),
-                      item.isUnread
-                          ? 'Trạng thái: Chưa đọc'
-                          : 'Trạng thái: Đã đọc',
-                    ].join('\n'),
-                  ),
-                  isThreeLine: true,
-                  trailing: item.isUnread
-                      ? const Icon(Icons.circle, size: 10, color: Colors.red)
-                      : null,
+                AppNotificationCard(
+                  item: item,
                   onTap: () async {
                     if (item.isUnread) {
                       await Get.find<NotificationService>().markAsRead(item.id);
@@ -448,6 +422,11 @@ class _RoleScreenState extends State<RoleScreen> {
       return CeoDashboardScreen(menu: widget.menu);
     }
 
+    if (widget.menu.api.startsWith('/screens/ceo/') &&
+        widget.menu.key != 'dashboard') {
+      return CeoReportScreen(menu: widget.menu);
+    }
+
     return FutureBuilder<RoleScreenData>(
       future: _future,
       builder: (context, snapshot) {
@@ -486,6 +465,26 @@ class _RoleScreenState extends State<RoleScreen> {
                   ],
                 ),
               if (data.cards.isNotEmpty) const SizedBox(height: 16),
+              if (widget.menu.key == 'manage_assignments') ...[
+                FilledButton.icon(
+                  onPressed: () async {
+                    try {
+                      await Get.find<RoleScreenService>()
+                          .createDeliverySchedules();
+                      await _refresh();
+                      Get.snackbar(
+                        'Thành công',
+                        'Đã gửi lịch trình cho các shipper',
+                      );
+                    } catch (error) {
+                      Get.snackbar('Lỗi', error.toString());
+                    }
+                  },
+                  icon: const Icon(Icons.route_rounded),
+                  label: const Text('Hoàn tất và gửi lịch trình'),
+                ),
+                const SizedBox(height: 16),
+              ],
               if (data.items.isEmpty && data.cards.isEmpty)
                 const _MessageState(
                   icon: Icons.inbox_rounded,
@@ -506,6 +505,310 @@ class _RoleScreenState extends State<RoleScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class CeoReportScreen extends StatefulWidget {
+  const CeoReportScreen({super.key, required this.menu});
+
+  final MenuItemModel menu;
+
+  @override
+  State<CeoReportScreen> createState() => _CeoReportScreenState();
+}
+
+class _CeoReportScreenState extends State<CeoReportScreen> {
+  late DateTime _fromDate;
+  late DateTime _toDate;
+  late Future<RoleScreenData> _future;
+  String _customerSort = 'newest';
+
+  @override
+  void initState() {
+    super.initState();
+    final today = DateUtils.dateOnly(DateTime.now());
+    _toDate = today;
+    _fromDate = widget.menu.key == 'daily_sales'
+        ? today
+        : DateTime(today.year, today.month);
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant CeoReportScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.menu.api != widget.menu.api) {
+      final today = DateUtils.dateOnly(DateTime.now());
+      _toDate = today;
+      _fromDate = widget.menu.key == 'daily_sales'
+          ? today
+          : DateTime(today.year, today.month);
+      _load();
+    }
+  }
+
+  String _apiDate(DateTime value) => DateFormat('yyyy-MM-dd').format(value);
+
+  void _load() {
+    _future = Get.find<RoleScreenService>().load(
+      widget.menu.api,
+      query: {
+        'from_date': _apiDate(_fromDate),
+        'to_date': _apiDate(_toDate),
+        if (widget.menu.key == 'customers_list') 'sort': _customerSort,
+      },
+    );
+  }
+
+  Future<void> _refresh() async {
+    setState(_load);
+    await _future;
+  }
+
+  Future<void> _pickDate({required bool isFrom}) async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: isFrom ? _fromDate : _toDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      helpText: isFrom ? 'Chọn ngày bắt đầu' : 'Chọn ngày kết thúc',
+    );
+    if (selected == null) return;
+
+    setState(() {
+      if (isFrom) {
+        _fromDate = selected;
+        if (_fromDate.isAfter(_toDate)) _toDate = selected;
+      } else {
+        _toDate = selected;
+        if (_toDate.isBefore(_fromDate)) _fromDate = selected;
+      }
+      _load();
+    });
+  }
+
+  bool _isMoneyCard(String label) {
+    final normalized = label.toLowerCase();
+    return normalized.contains('doanh') ||
+        normalized.contains('thu') ||
+        normalized.contains('chi') ||
+        normalized.contains('dòng tiền') ||
+        normalized.contains('lợi nhuận');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<RoleScreenData>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return _MessageState(
+            icon: Icons.error_outline_rounded,
+            title: 'Không tải được ${widget.menu.label}',
+            subtitle: snapshot.error.toString(),
+            onRetry: _refresh,
+          );
+        }
+
+        final data =
+            snapshot.data ?? const RoleScreenData(cards: [], items: []);
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _CeoDateButton(
+                          label: 'Từ ngày',
+                          date: _fromDate,
+                          onTap: () => _pickDate(isFrom: true),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _CeoDateButton(
+                          label: 'Đến ngày',
+                          date: _toDate,
+                          onTap: () => _pickDate(isFrom: false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (widget.menu.key == 'customers_list') ...[
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: _customerSort,
+                  decoration: const InputDecoration(
+                    labelText: 'Sắp xếp khách hàng',
+                    prefixIcon: Icon(Icons.sort_rounded),
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'newest',
+                      child: Text('Khách hàng mới nhất'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'debt_desc',
+                      child: Text('Công nợ cao nhất'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'sales_desc',
+                      child: Text('Doanh số cao nhất'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'name_asc',
+                      child: Text('Tên khách hàng A-Z'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _customerSort = value;
+                      _load();
+                    });
+                  },
+                ),
+              ],
+              const SizedBox(height: 12),
+              if (data.cards.isNotEmpty)
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 1.3,
+                  children: [
+                    for (final card in data.cards)
+                      _CeoReportMetricCard(
+                        label: card.label,
+                        value: card.value,
+                        money: _isMoneyCard(card.label),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 18),
+              Text(
+                widget.menu.key == 'financial_reports'
+                    ? 'Theo nhóm giao dịch'
+                    : 'Chi tiết gần nhất',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (data.items.isEmpty)
+                const _MessageState(
+                  icon: Icons.inbox_rounded,
+                  title: 'Chưa có dữ liệu',
+                  subtitle: 'Hãy chọn một khoảng ngày khác để xem báo cáo.',
+                )
+              else
+                for (final item in data.items) ...[
+                  _RoleListTile(
+                    menu: widget.menu,
+                    item: item,
+                    onChanged: _refresh,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CeoDateButton extends StatelessWidget {
+  const _CeoDateButton({
+    required this.label,
+    required this.date,
+    required this.onTap,
+  });
+
+  final String label;
+  final DateTime date;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.calendar_month_rounded),
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        child: Text(
+          DateFormat('dd/MM/yyyy').format(date),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+}
+
+class _CeoReportMetricCard extends StatelessWidget {
+  const _CeoReportMetricCard({
+    required this.label,
+    required this.value,
+    required this.money,
+  });
+
+  final String label;
+  final Object value;
+  final bool money;
+
+  @override
+  Widget build(BuildContext context) {
+    final numeric = double.tryParse('$value') ?? 0;
+    return Card(
+      color: const Color(0xFFF8FAFC),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Icon(Icons.analytics_outlined, color: Color(0xFF0D7A70)),
+            Text(
+              money
+                  ? Formatters.money(numeric)
+                  : Formatters.compactNumber(numeric),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -3000,30 +3303,6 @@ IconData _changeIcon(String name) {
   };
 }
 
-String _priorityLabel(String priority) {
-  return switch (priority) {
-    'urgent' => 'Khẩn cấp',
-    'warning' => 'Cảnh báo',
-    _ => 'Thông tin',
-  };
-}
-
-IconData _notificationIcon(String priority) {
-  return switch (priority) {
-    'urgent' => Icons.priority_high_rounded,
-    'warning' => Icons.warning_amber_rounded,
-    _ => Icons.info_outline_rounded,
-  };
-}
-
-Color _notificationColor(String priority) {
-  return switch (priority) {
-    'urgent' => const Color(0xFFDC2626),
-    'warning' => const Color(0xFFF59E0B),
-    _ => const Color(0xFF2563EB),
-  };
-}
-
 Color _priorityColor(String state) {
   return switch (state) {
     'packing' => const Color(0xFFF59E0B),
@@ -3193,7 +3472,7 @@ class _RoleListTile extends StatelessWidget {
   }
 
   void _showDetail(BuildContext context) {
-    final actions = _warehouseOrderActions(context);
+    final actions = _actions(context);
 
     showModalBottomSheet<void>(
       context: context,
@@ -3235,7 +3514,13 @@ class _RoleListTile extends StatelessWidget {
     );
   }
 
-  List<Widget> _warehouseOrderActions(BuildContext context) {
+  List<Widget> _actions(BuildContext context) {
+    if (menu.key == 'manage_assignments') {
+      return _managerAssignmentActions(context);
+    }
+    if (menu.key == 'returns') {
+      return _returnActions(context);
+    }
     if (menu.key != 'orders') return const [];
     final status = item.status;
     final service = Get.find<RoleScreenService>();
@@ -3279,6 +3564,127 @@ class _RoleListTile extends StatelessWidget {
     }
 
     return const [];
+  }
+
+  List<Widget> _managerAssignmentActions(BuildContext context) {
+    final shippers = (item.raw['available_shippers'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    final assignedId = int.tryParse('${item.raw['shipper_id'] ?? ''}');
+
+    return [
+      if (assignedId != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Đang giao cho: ${item.raw['shipper_name'] ?? ''}',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      FilledButton.icon(
+        onPressed: shippers.isEmpty
+            ? null
+            : () async {
+                final selected = await showDialog<int>(
+                  context: context,
+                  builder: (dialogContext) => SimpleDialog(
+                    title: const Text('Chọn shipper'),
+                    children: [
+                      for (final shipper in shippers)
+                        SimpleDialogOption(
+                          onPressed: () => Navigator.pop(
+                            dialogContext,
+                            int.tryParse('${shipper['id']}'),
+                          ),
+                          child: Text((shipper['name'] ?? '').toString()),
+                        ),
+                    ],
+                  ),
+                );
+                if (selected == null || !context.mounted) return;
+                Navigator.of(context).pop();
+                try {
+                  await Get.find<RoleScreenService>().assignShipper(
+                    orderId: item.id,
+                    shipperId: selected,
+                  );
+                  await onChanged();
+                  Get.snackbar('Thành công', 'Đã điều phối đơn hàng');
+                } catch (error) {
+                  Get.snackbar('Lỗi', error.toString());
+                }
+              },
+        icon: const Icon(Icons.person_add_alt_1_rounded),
+        label: Text(assignedId == null ? 'Gán shipper' : 'Chuyển shipper'),
+      ),
+      if (assignedId != null) ...[
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () async {
+            Navigator.of(context).pop();
+            try {
+              await Get.find<RoleScreenService>().unassignShipper(item.id);
+              await onChanged();
+              Get.snackbar('Thành công', 'Đã gỡ điều phối đơn hàng');
+            } catch (error) {
+              Get.snackbar('Lỗi', error.toString());
+            }
+          },
+          icon: const Icon(Icons.person_remove_rounded),
+          label: const Text('Gỡ shipper'),
+        ),
+      ],
+    ];
+  }
+
+  List<Widget> _returnActions(BuildContext context) {
+    if (![
+      'pending_warehouse',
+      'requested',
+      'ship_confirmed',
+    ].contains(item.status)) {
+      return const [];
+    }
+
+    return [
+      FilledButton.icon(
+        onPressed: () async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Nhận hàng trả'),
+              content: const Text(
+                'Xác nhận nhận hàng, cập nhật tồn kho và tạo phiếu nhập kho?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Hủy'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Xác nhận nhập kho'),
+                ),
+              ],
+            ),
+          );
+          if (confirmed != true || !context.mounted) return;
+          Navigator.of(context).pop();
+          try {
+            await Get.find<RoleScreenService>().receiveReturn(item.id);
+            await onChanged();
+            Get.snackbar(
+              'Thành công',
+              'Đã nhận hàng trả và tạo phiếu nhập kho',
+            );
+          } catch (error) {
+            Get.snackbar('Lỗi', error.toString());
+          }
+        },
+        icon: const Icon(Icons.inventory_rounded),
+        label: const Text('Nhận hàng trả và tạo phiếu nhập'),
+      ),
+    ];
   }
 }
 
@@ -3436,6 +3842,8 @@ IconData _icon(String name) {
     'move_to_inbox' => Icons.move_to_inbox_rounded,
     'outbox' => Icons.outbox_rounded,
     'payments' => Icons.payments_rounded,
+    'people' => Icons.people_alt_rounded,
+    'money_off' => Icons.money_off_csred_rounded,
     'query_stats' => Icons.query_stats_rounded,
     'receipt_long' => Icons.receipt_long_rounded,
     'route' => Icons.route_rounded,

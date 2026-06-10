@@ -52,6 +52,9 @@ class AppNotificationItem {
     required this.orderId,
     required this.readAt,
     required this.createdAt,
+    required this.products,
+    required this.total,
+    required this.note,
   });
 
   final String id;
@@ -62,8 +65,20 @@ class AppNotificationItem {
   final int? orderId;
   final String readAt;
   final String createdAt;
+  final List<AppNotificationProduct> products;
+  final double total;
+  final String note;
 
   bool get isUnread => readAt.isEmpty;
+  bool get isNewOrder => products.isNotEmpty;
+
+  List<String> get detailLines => [
+    if (message.isNotEmpty) message,
+    for (final product in products)
+      '${product.name}: ${_compact(product.quantity)} × ${_money(product.price)} = ${_money(product.lineTotal)}',
+    if (isNewOrder) 'Tổng tiền: ${_money(total)}',
+    if (isNewOrder) 'Ghi chú: ${note.isEmpty ? 'Không có' : note}',
+  ];
 
   factory AppNotificationItem.fromJson(Map<String, dynamic> json) {
     return AppNotificationItem(
@@ -77,6 +92,45 @@ class AppNotificationItem {
           : int.tryParse('${json['order_id']}'),
       readAt: (json['read_at'] ?? '').toString(),
       createdAt: (json['created_at'] ?? '').toString(),
+      products: (json['products'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AppNotificationProduct.fromJson)
+          .toList(),
+      total: double.tryParse('${json['total'] ?? 0}') ?? 0,
+      note: (json['note'] ?? '').toString(),
     );
   }
+}
+
+class AppNotificationProduct {
+  const AppNotificationProduct({
+    required this.name,
+    required this.quantity,
+    required this.price,
+    required this.lineTotal,
+  });
+
+  final String name;
+  final double quantity;
+  final double price;
+  final double lineTotal;
+
+  factory AppNotificationProduct.fromJson(Map<String, dynamic> json) {
+    return AppNotificationProduct(
+      name: (json['name'] ?? 'Sản phẩm').toString(),
+      quantity: double.tryParse('${json['quantity'] ?? 0}') ?? 0,
+      price: double.tryParse('${json['price'] ?? 0}') ?? 0,
+      lineTotal: double.tryParse('${json['line_total'] ?? 0}') ?? 0,
+    );
+  }
+}
+
+String _compact(double value) {
+  if (value == value.roundToDouble()) return value.toInt().toString();
+  return value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+}
+
+String _money(double value) {
+  final digits = value.round().toString();
+  return '${digits.replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (match) => '.')}đ';
 }

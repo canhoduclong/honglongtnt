@@ -5,8 +5,11 @@ class RoleScreenService {
 
   final ApiService _api;
 
-  Future<RoleScreenData> load(String apiPath) async {
-    final response = await _api.getJson(apiPath);
+  Future<RoleScreenData> load(
+    String apiPath, {
+    Map<String, dynamic>? query,
+  }) async {
+    final response = await _api.getJson(apiPath, query: query);
     return RoleScreenData.fromResponse(response);
   }
 
@@ -16,6 +19,25 @@ class RoleScreenService {
 
   Future<void> completePacking(int orderId) async {
     await _api.postJson('/warehouse/orders/$orderId/complete-packing');
+  }
+
+  Future<void> assignShipper({
+    required int orderId,
+    required int shipperId,
+  }) async {
+    await _api.postJson('/shipper/assignments/$orderId/assign/$shipperId');
+  }
+
+  Future<void> unassignShipper(int orderId) async {
+    await _api.postJson('/shipper/assignments/$orderId/unassign');
+  }
+
+  Future<void> createDeliverySchedules() async {
+    await _api.postJson('/shipper/assignments/create-schedules');
+  }
+
+  Future<void> receiveReturn(int returnId) async {
+    await _api.postJson('/warehouse/returns/$returnId/receive');
   }
 
   Future<void> updateOrderItemWeight({

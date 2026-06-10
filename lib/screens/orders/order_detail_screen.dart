@@ -15,12 +15,10 @@ class OrderDetailScreen extends StatefulWidget {
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   final _amountController = TextEditingController();
-  final _reasonController = TextEditingController();
 
   @override
   void dispose() {
     _amountController.dispose();
-    _reasonController.dispose();
     super.dispose();
   }
 
@@ -133,20 +131,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       label: const Text('Hoàn thành giao hàng'),
                     ),
                     const SizedBox(height: 10),
-                    TextField(
-                      controller: _reasonController,
-                      decoration: const InputDecoration(
-                        labelText: 'Lý do trả hàng',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: () => controller.markReturning(
-                        order,
-                        reason: _reasonController.text.trim(),
-                      ),
+                      onPressed: () => _showReturnDialog(controller, order),
                       icon: const Icon(Icons.assignment_return_rounded),
-                      label: const Text('Trả hàng'),
+                      label: const Text('Tạo phiếu trả hàng về kho'),
                     ),
                   ],
                 ),
@@ -156,6 +144,102 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showReturnDialog(
+    OrderController controller,
+    OrderModel order,
+  ) async {
+    final warehouses = await controller.warehouses();
+    if (!mounted) return;
+    if (warehouses.isEmpty) {
+      Get.snackbar('Không có kho', 'Chưa có kho nhận hàng trả.');
+      return;
+    }
+
+    var warehouseId = warehouses.first.id;
+    var reason = 'customer_refused';
+    final noteController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Tạo phiếu trả hàng'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<int>(
+                  initialValue: warehouseId,
+                  decoration: const InputDecoration(labelText: 'Kho nhận trả'),
+                  items: [
+                    for (final warehouse in warehouses)
+                      DropdownMenuItem(
+                        value: warehouse.id,
+                        child: Text(warehouse.name),
+                      ),
+                  ],
+                  onChanged: (value) =>
+                      setDialogState(() => warehouseId = value ?? warehouseId),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: reason,
+                  decoration: const InputDecoration(labelText: 'Lý do trả'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'customer_refused',
+                      child: Text('Khách từ chối nhận'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'no_contact',
+                      child: Text('Không liên lạc được'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'wrong_address',
+                      child: Text('Sai địa chỉ'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'damaged',
+                      child: Text('Hàng hỏng / không đủ điều kiện'),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setDialogState(() => reason = value ?? reason),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Ghi chú'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Tạo phiếu trả'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final note = noteController.text.trim();
+    noteController.dispose();
+    if (confirmed != true) return;
+
+    await controller.markReturning(
+      order,
+      warehouseId: warehouseId,
+      reason: reason,
+      note: note,
+    );
+    if (mounted) Navigator.of(context).pop();
   }
 }
 

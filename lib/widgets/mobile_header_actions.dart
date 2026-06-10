@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import '../models/user_model.dart';
 import '../services/notification_service.dart';
-import '../utils/formatters.dart';
+import 'app_notification_card.dart';
 import 'shipper_account_menu.dart';
 
 class MobileHeaderActions extends StatelessWidget {
@@ -236,36 +236,8 @@ class _NotificationSheetState extends State<_NotificationSheet> {
               const _NotificationEmptyState()
             else
               for (final item in data.items) ...[
-                ListTile(
-                  tileColor: item.isUnread
-                      ? const Color(0xFFEFF6FF)
-                      : Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  leading: Icon(
-                    _notificationIcon(item.priority),
-                    color: _notificationColor(item.priority),
-                  ),
-                  title: Text(
-                    item.title,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  subtitle: Text(
-                    [
-                      if (item.message.isNotEmpty) item.message,
-                      'Mức độ: ${_priorityLabel(item.priority)}',
-                      if (item.createdAt.isNotEmpty)
-                        Formatters.dateTime(item.createdAt),
-                      item.isUnread
-                          ? 'Trạng thái: Chưa đọc'
-                          : 'Trạng thái: Đã đọc',
-                    ].join('\n'),
-                  ),
-                  isThreeLine: true,
-                  trailing: item.isUnread
-                      ? const Icon(Icons.circle, size: 10, color: Colors.red)
-                      : null,
+                AppNotificationCard(
+                  item: item,
                   onTap: () async {
                     if (item.isUnread) {
                       await Get.find<NotificationService>().markAsRead(item.id);
@@ -316,30 +288,6 @@ class _NotificationEmptyState extends StatelessWidget {
       ),
     );
   }
-}
-
-String _priorityLabel(String priority) {
-  return switch (priority) {
-    'urgent' => 'Khẩn cấp',
-    'warning' => 'Cảnh báo',
-    _ => 'Thông tin',
-  };
-}
-
-IconData _notificationIcon(String priority) {
-  return switch (priority) {
-    'urgent' => Icons.priority_high_rounded,
-    'warning' => Icons.warning_amber_rounded,
-    _ => Icons.info_outline_rounded,
-  };
-}
-
-Color _notificationColor(String priority) {
-  return switch (priority) {
-    'urgent' => const Color(0xFFDC2626),
-    'warning' => const Color(0xFFF59E0B),
-    _ => const Color(0xFF2563EB),
-  };
 }
 
 IconData _workspaceIcon(String layout) {

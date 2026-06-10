@@ -71,6 +71,32 @@ class OrderService {
     await _api.postJson('/shipper/orders/$orderId/accept');
   }
 
+  Future<List<WarehouseOption>> warehouses() async {
+    final response = await _api.getJson('/shipper/warehouses');
+    final data = response['data'];
+    if (data is! List) return const [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(WarehouseOption.fromJson)
+        .toList();
+  }
+
+  Future<void> returnOrder({
+    required int orderId,
+    required int warehouseId,
+    required String reason,
+    String note = '',
+  }) async {
+    await _api.postJson(
+      '/shipper/orders/$orderId/return',
+      data: {
+        'return_warehouse_id': warehouseId,
+        'return_reason': reason,
+        'return_note': note,
+      },
+    );
+  }
+
   Future<OrderModel> updateStatus({
     required int orderId,
     required String status,
@@ -124,5 +150,19 @@ class OrderService {
     } while (page <= lastPage && page <= 100);
 
     return all;
+  }
+}
+
+class WarehouseOption {
+  const WarehouseOption({required this.id, required this.name});
+
+  final int id;
+  final String name;
+
+  factory WarehouseOption.fromJson(Map<String, dynamic> json) {
+    return WarehouseOption(
+      id: int.tryParse('${json['id'] ?? 0}') ?? 0,
+      name: (json['name'] ?? '').toString(),
+    );
   }
 }

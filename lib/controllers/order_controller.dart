@@ -105,19 +105,22 @@ class OrderController extends GetxController {
 
   Future<void> markReturning(
     OrderModel order, {
-    String? reason,
-    String? note,
+    required int warehouseId,
+    required String reason,
+    String note = '',
   }) async {
     await _perform(() async {
-      await _orderService.updateStatus(
+      await _orderService.returnOrder(
         orderId: order.id,
-        status: 'returning',
-        returnReason: reason,
-        shipperNote: note,
+        warehouseId: warehouseId,
+        reason: reason,
+        note: note,
       );
       await loadAll();
     }, success: 'Da gui yeu cau tra hang ${order.code}');
   }
+
+  Future<List<WarehouseOption>> warehouses() => _orderService.warehouses();
 
   Future<void> _perform(
     Future<void> Function() action, {
