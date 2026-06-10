@@ -337,6 +337,10 @@ class _SaleScreenState extends State<SaleScreen> {
   Widget _orderCard(Map<String, dynamic> order) {
     final customer = _map(order['customer']);
     final items = _list(order['items']);
+    final customerName =
+        '${customer['name'] ?? order['recipient_name'] ?? 'Khách hàng'}';
+    final orderCode = '${order['code'] ?? '#${order['id']}'}';
+    final priority = _num(order['daily_sequence']).toInt();
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
@@ -348,32 +352,42 @@ class _SaleScreenState extends State<SaleScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(
-                      '${order['code'] ?? '#${order['id']}'}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customerName,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          orderCode.toLowerCase(),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: const Color(0xFF64748B)),
+                        ),
+                      ],
                     ),
                   ),
+                  if (priority > 0) ...[
+                    _PriorityBadge(priority),
+                    const SizedBox(width: 8),
+                  ],
                   _Status('${order['status'] ?? ''}'),
                 ],
               ),
               const SizedBox(height: 8),
               _Info(
-                Icons.person_outline,
-                '${customer['name'] ?? order['recipient_name'] ?? '-'}',
-              ),
-              _Info(
                 Icons.schedule_outlined,
                 Formatters.dateTime('${order['created_at'] ?? ''}'),
               ),
-              if (items.isNotEmpty)
-                _Info(
-                  Icons.inventory_2_outlined,
-                  '${items.length} sản phẩm · ${items.fold<int>(0, (sum, item) => sum + (_num(item['quantity']).toInt()))} món',
-                ),
+              if (items.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                for (final item in items) _OrderItemSummary(item: item),
+              ],
               const Divider(),
               Row(
                 children: [
@@ -1462,6 +1476,69 @@ class _OrderLine {
   }
 }
 
+class _PriorityBadge extends StatelessWidget {
+  const _PriorityBadge(this.number);
+
+  final int number;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEDD5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF97316)),
+      ),
+      child: Text(
+        'Ưu tiên #$number',
+        style: const TextStyle(
+          color: Color(0xFF9A3412),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderItemSummary extends StatelessWidget {
+  const _OrderItemSummary({required this.item});
+
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    final variant = _map(item['variant']);
+    final size = '${variant['size'] ?? item['size'] ?? ''}'.trim();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 17,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              [
+                _productName(item),
+                'Size ${size.isEmpty ? '-' : size}',
+                'SL ${item['quantity'] ?? 0}',
+                'Giá ${Formatters.money(_num(item['price']))}',
+              ].join(' | '),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Info extends StatelessWidget {
   const _Info(this.icon, this.text);
 
@@ -1547,4 +1624,10 @@ String _itemName(Map<String, dynamic> item) {
   final variant = _map(item['variant']);
   final product = _map(item['product']);
   return '${variant['name'] ?? product['name'] ?? item['name'] ?? 'Sản phẩm'}';
+}
+
+String _productName(Map<String, dynamic> item) {
+  final product = _map(item['product']);
+  final variant = _map(item['variant']);
+  return '${product['name'] ?? variant['name'] ?? item['name'] ?? 'Sản phẩm'}';
 }
