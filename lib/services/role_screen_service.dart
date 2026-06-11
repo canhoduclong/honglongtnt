@@ -17,6 +17,10 @@ class RoleScreenService {
     await _api.postJson('/warehouse/orders/$orderId/start-packing');
   }
 
+  Future<void> undoStartPacking(int orderId) async {
+    await _api.postJson('/warehouse/orders/$orderId/undo-start-packing');
+  }
+
   Future<void> completePacking(int orderId) async {
     await _api.postJson('/warehouse/orders/$orderId/complete-packing');
   }

@@ -2,6 +2,7 @@ import '../models/dashboard_stats.dart';
 import '../models/delivery_schedule_model.dart';
 import '../models/order_model.dart';
 import 'api_service.dart';
+import 'package:dio/dio.dart';
 
 class OrderService {
   OrderService(this._api);
@@ -117,6 +118,42 @@ class OrderService {
     return current.firstWhere(
       (order) => order.id == orderId,
       orElse: () => throw StateError('Order not found'),
+    );
+  }
+
+  Future<void> completeDelivery({
+    required int orderId,
+    double? collectedAmount,
+    required bool hasPartialReturn,
+    required Map<int, int> deliveredQuantities,
+    required Map<int, double> deliveredWeights,
+    int? returnWarehouseId,
+    String? returnReason,
+  }) async {
+    await _api.postJson(
+      '/shipper/orders/$orderId/complete-delivery',
+      data: {
+        'collected_amount': ?collectedAmount,
+        'has_partial_return': hasPartialReturn ? 1 : 0,
+        'delivered_qty': deliveredQuantities.map(
+          (key, value) => MapEntry('$key', value),
+        ),
+        'partial_weight': deliveredWeights.map(
+          (key, value) => MapEntry('$key', value),
+        ),
+        'actual_weight': deliveredWeights.map(
+          (key, value) => MapEntry('$key', value),
+        ),
+        'return_warehouse_id': ?returnWarehouseId,
+        'partial_return_reason': ?returnReason,
+      },
+    );
+  }
+
+  Future<void> uploadProof(int orderId, String filePath) async {
+    await _api.postForm(
+      '/shipper/orders/$orderId/upload-proof',
+      FormData.fromMap({'proof_image': await MultipartFile.fromFile(filePath)}),
     );
   }
 

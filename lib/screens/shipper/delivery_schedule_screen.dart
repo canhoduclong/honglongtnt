@@ -10,7 +10,9 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/mobile_header_actions.dart';
 
 class DeliveryScheduleScreen extends StatelessWidget {
-  const DeliveryScheduleScreen({super.key});
+  const DeliveryScheduleScreen({super.key, this.onConfirmed});
+
+  final VoidCallback? onConfirmed;
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +103,9 @@ class DeliveryScheduleScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: controller.isLoading.value || !schedule.isWaiting
+                    onPressed:
+                        controller.isConfirmingSchedule.value ||
+                            !schedule.isWaiting
                         ? null
                         : controller.rejectDeliverySchedule,
                     icon: const Icon(Icons.cancel_outlined),
@@ -111,9 +115,15 @@ class DeliveryScheduleScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: controller.isLoading.value || !schedule.isWaiting
+                    onPressed:
+                        controller.isConfirmingSchedule.value ||
+                            !schedule.isWaiting
                         ? null
-                        : controller.confirmDeliverySchedule,
+                        : () async {
+                            final confirmed = await controller
+                                .confirmDeliverySchedule();
+                            if (confirmed) onConfirmed?.call();
+                          },
                     icon: const Icon(Icons.check_circle_rounded),
                     label: Text(
                       schedule.isConfirmed ? 'Đã xác nhận' : 'Xác nhận',
@@ -137,10 +147,10 @@ class DeliveryScheduleScreen extends StatelessWidget {
   int? _tabForRouteKey(String routeKey, int? orderId) {
     final normalized = routeKey.trim().toLowerCase();
     if (normalized == 'available_orders' || normalized == 'available') {
-      return 2;
+      return 1;
     }
     if (normalized == 'delivery_schedules' || normalized == 'schedule') {
-      return 3;
+      return 2;
     }
     if (normalized == 'my_orders' ||
         normalized == 'orders' ||

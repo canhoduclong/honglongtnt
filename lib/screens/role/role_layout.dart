@@ -2926,15 +2926,33 @@ class _WarehouseOrderActions extends StatelessWidget {
     }
 
     if (order.canCompletePacking) {
-      return FilledButton.icon(
-        onPressed: () async {
-          await _perform(
-            () => service.completePacking(order.id),
-            'Đã hoàn thành đóng gói #${order.sequenceLabel}',
-          );
-        },
-        icon: const Icon(Icons.check_circle_rounded),
-        label: const Text('Hoàn thành đóng gói'),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (order.canUndoStartPacking) ...[
+            OutlinedButton.icon(
+              onPressed: () async {
+                await _perform(
+                  () => service.undoStartPacking(order.id),
+                  'Đã Undo nhận đơn #${order.sequenceLabel}',
+                );
+              },
+              icon: const Icon(Icons.undo_rounded),
+              label: const Text('Undo nhận đơn'),
+            ),
+            const SizedBox(height: 8),
+          ],
+          FilledButton.icon(
+            onPressed: () async {
+              await _perform(
+                () => service.completePacking(order.id),
+                'Đã hoàn thành đóng gói #${order.sequenceLabel}',
+              );
+            },
+            icon: const Icon(Icons.check_circle_rounded),
+            label: const Text('Hoàn thành đóng gói'),
+          ),
+        ],
       );
     }
 
@@ -3180,6 +3198,7 @@ class WarehouseOrderData {
     required this.chargeFoamBoxFee,
     required this.canStartPacking,
     required this.canCompletePacking,
+    required this.canUndoStartPacking,
     required this.items,
   });
 
@@ -3202,6 +3221,7 @@ class WarehouseOrderData {
   final bool chargeFoamBoxFee;
   final bool canStartPacking;
   final bool canCompletePacking;
+  final bool canUndoStartPacking;
   final List<WarehouseOrderItemData> items;
 
   String get sequenceLabel => sequence > 0 ? '$sequence' : '—';
@@ -3240,6 +3260,7 @@ class WarehouseOrderData {
       chargeFoamBoxFee: raw['charge_foam_box_fee'] == true,
       canStartPacking: raw['can_start_packing'] == true,
       canCompletePacking: raw['can_complete_packing'] == true,
+      canUndoStartPacking: raw['can_undo_start_packing'] == true,
       items: items,
     );
   }
@@ -3551,6 +3572,23 @@ class _RoleListTile extends StatelessWidget {
 
     if (status == 'packing') {
       return [
+        if (item.raw['can_undo_start_packing'] == true)
+          OutlinedButton.icon(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await service.undoStartPacking(item.id);
+                await onChanged();
+                Get.snackbar('Thành công', 'Đã Undo nhận đơn');
+              } catch (error) {
+                Get.snackbar('Lỗi', error.toString());
+              }
+            },
+            icon: const Icon(Icons.undo_rounded),
+            label: const Text('Undo nhận đơn'),
+          ),
+        if (item.raw['can_undo_start_packing'] == true)
+          const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: () async {
             Navigator.of(context).pop();

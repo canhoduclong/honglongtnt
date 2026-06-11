@@ -19,6 +19,8 @@ class OrderController extends GetxController {
   final myOrders = <OrderModel>[].obs;
   final historyOrders = <OrderModel>[].obs;
   final isLoading = false.obs;
+  final acceptingOrderIds = <int>{}.obs;
+  final isConfirmingSchedule = false.obs;
   final errorMessage = ''.obs;
 
   Future<void> loadAll() async {
@@ -53,23 +55,31 @@ class OrderController extends GetxController {
   }
 
   Future<void> accept(OrderModel order) async {
+    if (acceptingOrderIds.contains(order.id)) return;
+    acceptingOrderIds.add(order.id);
     await _perform(() async {
       await _orderService.acceptOrder(order.id);
       await loadAll();
     }, success: 'Da nhan don ${order.code}');
+    acceptingOrderIds.remove(order.id);
   }
 
-  Future<void> confirmDeliverySchedule() async {
+  Future<bool> confirmDeliverySchedule() async {
     final schedule = deliverySchedule.value;
-    if (schedule.orders.isEmpty) return;
+    if (schedule.orders.isEmpty || isConfirmingSchedule.value) return false;
 
+    var confirmed = false;
+    isConfirmingSchedule.value = true;
     await _perform(() async {
       await _orderService.confirmDeliverySchedule(
         orderIds: schedule.orders.map((order) => order.id).toList(),
         date: schedule.date,
       );
       await loadAll();
+      confirmed = true;
     }, success: 'Da xac nhan lo trinh giao hang');
+    isConfirmingSchedule.value = false;
+    return confirmed;
   }
 
   Future<void> rejectDeliverySchedule() async {
@@ -101,6 +111,40 @@ class OrderController extends GetxController {
       );
       await loadAll();
     }, success: 'Da cap nhat don ${order.code}');
+  }
+
+  Future<bool> completeDelivery(
+    OrderModel order, {
+    double? collectedAmount,
+    required bool hasPartialReturn,
+    required Map<int, int> deliveredQuantities,
+    required Map<int, double> deliveredWeights,
+    required List<String> deliveryImagePaths,
+    required List<String> invoiceImagePaths,
+    int? returnWarehouseId,
+    String? returnReason,
+  }) async {
+    var completed = false;
+    await _perform(() async {
+      for (final path in deliveryImagePaths) {
+        await _orderService.uploadProof(order.id, path);
+      }
+      for (final path in invoiceImagePaths) {
+        await _orderService.uploadProof(order.id, path);
+      }
+      await _orderService.completeDelivery(
+        orderId: order.id,
+        collectedAmount: collectedAmount,
+        hasPartialReturn: hasPartialReturn,
+        deliveredQuantities: deliveredQuantities,
+        deliveredWeights: deliveredWeights,
+        returnWarehouseId: returnWarehouseId,
+        returnReason: returnReason,
+      );
+      completed = true;
+      await loadAll();
+    }, success: 'Da hoan tat don ${order.code}');
+    return completed;
   }
 
   Future<void> markReturning(

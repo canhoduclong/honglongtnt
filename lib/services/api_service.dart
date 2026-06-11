@@ -67,6 +67,19 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> postForm(String path, FormData data) async {
+    try {
+      final response = await dio.post(
+        path,
+        data: data,
+        options: Options(contentType: Headers.multipartFormDataContentType),
+      );
+      return _normalize(response);
+    } on DioException catch (error) {
+      throw _toApiException(error);
+    }
+  }
+
   Future<Map<String, dynamic>> putJson(String path, {Object? data}) async {
     try {
       final response = await dio.put(path, data: data);

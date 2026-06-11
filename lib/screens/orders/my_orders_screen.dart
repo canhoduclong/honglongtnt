@@ -17,15 +17,18 @@ class MyOrdersScreen extends StatelessWidget {
     final controller = Get.find<OrderController>();
 
     return DefaultTabController(
-      length: 3,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Đơn của tôi'),
+          title: const Text('Đơn hàng'),
           bottom: const TabBar(
+            isScrollable: true,
             tabs: [
+              Tab(text: 'Có thể nhận'),
               Tab(text: 'Đang giao'),
-              Tab(text: 'Chưa hoàn thiện'),
-              Tab(text: 'Lịch sử'),
+              Tab(text: 'Chưa hoàn thành'),
+              Tab(text: 'Hoàn thành'),
+              Tab(text: 'Trả hàng'),
             ],
           ),
           actions: [
@@ -34,24 +37,45 @@ class MyOrdersScreen extends StatelessWidget {
         ),
         body: Obx(() {
           final allOrders = _uniqueOrders([
+            ...controller.availableOrders,
             ...controller.myOrders,
             ...controller.historyOrders,
           ]);
 
+          final available =
+              allOrders.where((order) => order.isReadyToShip).toList()
+                ..sort(_prioritySort);
           final delivering =
               allOrders.where((order) => order.isDelivering).toList()
                 ..sort(_prioritySort);
 
           final unfinished =
-              allOrders.where((order) => order.isReturning).toList()
-                ..sort(_prioritySort);
-
-          final history =
               allOrders
                   .where(
                     (order) =>
-                        order.isDelivered ||
-                        order.status == 'completed' ||
+                        !order.isReadyToShip &&
+                        !order.isDelivering &&
+                        !order.isDelivered &&
+                        order.status != 'completed' &&
+                        !order.isReturning &&
+                        order.status != 'returned_completed',
+                  )
+                  .toList()
+                ..sort(_prioritySort);
+
+          final completed =
+              allOrders
+                  .where(
+                    (order) => order.isDelivered || order.status == 'completed',
+                  )
+                  .toList()
+                ..sort(_prioritySort);
+
+          final returning =
+              allOrders
+                  .where(
+                    (order) =>
+                        order.isReturning ||
                         order.status == 'returned_completed',
                   )
                   .toList()
@@ -60,21 +84,53 @@ class MyOrdersScreen extends StatelessWidget {
           return TabBarView(
             children: [
               _OrderList(
+                orders: available,
+                emptyTitle: 'Không có đơn có thể nhận',
+                emptySubtitle: 'Đơn sẵn sàng giao sẽ hiển thị tại đây.',
+                actionBuilder: (order) {
+                  final accepting = controller.acceptingOrderIds.contains(
+                    order.id,
+                  );
+                  return FilledButton.icon(
+                    onPressed: accepting
+                        ? null
+                        : () => controller.accept(order),
+                    icon: accepting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.handshake_rounded, size: 18),
+                    label: Text(accepting ? 'Đang nhận...' : 'Nhận đơn'),
+                  );
+                },
+              ),
+              _OrderList(
                 orders: delivering,
                 emptyTitle: 'Chưa có đơn đang giao',
                 emptySubtitle: 'Đơn đang vận chuyển sẽ hiển thị tại đây.',
+                actionBuilder: (order) => FilledButton.icon(
+                  onPressed: () =>
+                      Get.toNamed(AppRoutes.orderDetail, arguments: order),
+                  icon: const Icon(Icons.local_shipping_rounded, size: 18),
+                  label: const Text('Giao hàng'),
+                ),
               ),
               _OrderList(
                 orders: unfinished,
-                emptyTitle: 'Chưa có đơn chưa hoàn thiện',
+                emptyTitle: 'Chưa có đơn chưa hoàn thành',
                 emptySubtitle:
-                    'Các đơn đã bấm Giao hàng hoặc Trả hàng nhưng chưa chốt sẽ hiển thị tại đây.',
+                    'Các đơn cần tiếp tục xử lý sẽ hiển thị tại đây.',
               ),
               _OrderList(
-                orders: history,
-                emptyTitle: 'Chưa có đơn lịch sử',
-                emptySubtitle:
-                    'Đơn giao xong hoặc trả hàng hoàn tất sẽ hiển thị tại đây.',
+                orders: completed,
+                emptyTitle: 'Chưa có đơn hoàn thành',
+                emptySubtitle: 'Đơn đã hoàn tất sẽ hiển thị tại đây.',
+              ),
+              _OrderList(
+                orders: returning,
+                emptyTitle: 'Chưa có đơn trả hàng',
+                emptySubtitle: 'Đơn đang trả hoặc đã trả sẽ hiển thị tại đây.',
               ),
             ],
           );
@@ -107,10 +163,10 @@ class MyOrdersScreen extends StatelessWidget {
   int? _tabForRouteKey(String routeKey, int? orderId) {
     final normalized = routeKey.trim().toLowerCase();
     if (normalized == 'available_orders' || normalized == 'available') {
-      return 2;
+      return 1;
     }
     if (normalized == 'delivery_schedules' || normalized == 'schedule') {
-      return 3;
+      return 2;
     }
     if (normalized == 'my_orders' ||
         normalized == 'orders' ||
@@ -126,11 +182,13 @@ class _OrderList extends StatelessWidget {
     required this.orders,
     required this.emptyTitle,
     required this.emptySubtitle,
+    this.actionBuilder,
   });
 
   final List<OrderModel> orders;
   final String emptyTitle;
   final String emptySubtitle;
+  final Widget Function(OrderModel order)? actionBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +205,10 @@ class _OrderList extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         itemCount: orders.length,
         separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (_, index) => OrderCard(order: orders[index]),
+        itemBuilder: (_, index) => OrderCard(
+          order: orders[index],
+          trailing: actionBuilder?.call(orders[index]),
+        ),
       ),
     );
   }

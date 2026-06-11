@@ -7,7 +7,9 @@ import '../../services/notification_service.dart';
 import '../../widgets/mobile_header_actions.dart';
 
 class ShipperHomeScreen extends StatelessWidget {
-  const ShipperHomeScreen({super.key});
+  const ShipperHomeScreen({super.key, this.onScheduleConfirmed});
+
+  final VoidCallback? onScheduleConfirmed;
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +104,7 @@ class ShipperHomeScreen extends StatelessWidget {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed:
-                                    controller.isLoading.value ||
+                                    controller.isConfirmingSchedule.value ||
                                         !controller
                                             .deliverySchedule
                                             .value
@@ -117,13 +119,19 @@ class ShipperHomeScreen extends StatelessWidget {
                             Expanded(
                               child: FilledButton.icon(
                                 onPressed:
-                                    controller.isLoading.value ||
+                                    controller.isConfirmingSchedule.value ||
                                         !controller
                                             .deliverySchedule
                                             .value
                                             .isWaiting
                                     ? null
-                                    : controller.confirmDeliverySchedule,
+                                    : () async {
+                                        final confirmed = await controller
+                                            .confirmDeliverySchedule();
+                                        if (confirmed) {
+                                          onScheduleConfirmed?.call();
+                                        }
+                                      },
                                 icon: const Icon(Icons.check_circle_rounded),
                                 label: const Text('Xác nhận'),
                               ),
@@ -191,10 +199,10 @@ class ShipperHomeScreen extends StatelessWidget {
   int? _tabForRouteKey(String routeKey, int? orderId) {
     final normalized = routeKey.trim().toLowerCase();
     if (normalized == 'available_orders' || normalized == 'available') {
-      return 2;
+      return 1;
     }
     if (normalized == 'delivery_schedules' || normalized == 'schedule') {
-      return 3;
+      return 2;
     }
     if (normalized == 'my_orders' ||
         normalized == 'orders' ||

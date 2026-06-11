@@ -99,12 +99,27 @@ class OrderItemModel {
     required this.variantName,
     required this.size,
     required this.quantity,
+    required this.id,
+    required this.price,
+    required this.unitWeight,
+    required this.actualWeight,
+    required this.packedWeight,
+    required this.pricedByKg,
   });
 
   final String productName;
   final String variantName;
   final String size;
   final double quantity;
+  final int id;
+  final double price;
+  final double unitWeight;
+  final double? actualWeight;
+  final double? packedWeight;
+  final bool pricedByKg;
+
+  double get deliveryBaseWeight =>
+      packedWeight ?? actualWeight ?? (unitWeight * quantity);
 
   String get displayName {
     if (productName.isNotEmpty && variantName.isNotEmpty) {
@@ -132,6 +147,20 @@ class OrderItemModel {
       variantName: (variant['name'] ?? '').toString(),
       size: (variant['size'] ?? json['size'] ?? '').toString(),
       quantity: double.tryParse('${json['quantity'] ?? 0}') ?? 0,
+      id: int.tryParse('${json['id'] ?? 0}') ?? 0,
+      price: double.tryParse('${json['price'] ?? 0}') ?? 0,
+      unitWeight:
+          double.tryParse('${json['unit_weight'] ?? variant['kg'] ?? 0}') ?? 0,
+      actualWeight: json['actual_weight'] == null
+          ? null
+          : double.tryParse('${json['actual_weight']}'),
+      packedWeight: json['packed_weight'] == null
+          ? null
+          : double.tryParse('${json['packed_weight']}'),
+      pricedByKg:
+          json['is_priced_by_kg'] == true ||
+          json['is_priced_by_kg'] == 1 ||
+          json['is_priced_by_kg'] == '1',
     );
   }
 }
