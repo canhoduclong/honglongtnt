@@ -5,6 +5,21 @@ class SaleService {
 
   final ApiService _api;
 
+  Future<Map<String, dynamic>> dashboard() async {
+    return _data(await _api.getJson('/sale/dashboard'));
+  }
+
+  Future<void> confirmWarehouseAdjustment(int orderId) async {
+    await _api.postJson('/sale/order-adjustments/$orderId/confirm');
+  }
+
+  Future<void> rejectWarehouseAdjustment(int orderId, String reason) async {
+    await _api.postJson(
+      '/sale/order-adjustments/$orderId/reject',
+      data: {'reject_reason': reason},
+    );
+  }
+
   Future<SaleListData> customers({
     String search = '',
     String tab = 'all',

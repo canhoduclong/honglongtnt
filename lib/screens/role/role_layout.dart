@@ -13,6 +13,7 @@ import '../../utils/formatters.dart';
 import '../../widgets/app_notification_card.dart';
 import '../../widgets/shipper_account_menu.dart';
 import '../sale/sale_screen.dart';
+import '../sale/sale_dashboard_screen.dart';
 
 class RoleLayout extends StatefulWidget {
   const RoleLayout({super.key, required this.layout, required this.title});
@@ -409,6 +410,10 @@ class _RoleScreenState extends State<RoleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.menu.api == '/sale/dashboard') {
+      return const SaleDashboardScreen();
+    }
+
     if (widget.menu.api.startsWith('/sale/')) {
       return SaleScreen(menu: widget.menu);
     }
