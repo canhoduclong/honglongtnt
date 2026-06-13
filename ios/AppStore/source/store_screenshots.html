@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Ubuntu,"DejaVu Sans",sans-serif;color:#0f172a}
+.slide{width:1320px;height:2868px;position:relative;overflow:hidden;background:#eef9f6 url("marketing-background.png") center/cover}
+.veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.68) 52%,rgba(234,247,242,.92))}
+.brand{position:absolute;top:90px;left:90px;display:flex;align-items:center;gap:24px;font-size:30px;font-weight:800;color:#5b2e24}
+.brand img{width:76px;height:76px;border-radius:22px}
+.headline{position:absolute;top:250px;left:80px;right:80px;text-align:center}
+.headline h1{font-size:82px;line-height:1.08;margin:0;color:#073f39;letter-spacing:-2px}
+.headline p{font-size:34px;line-height:1.35;margin:26px auto 0;max-width:1050px;color:#47645f}
+.phone{position:absolute;top:650px;left:105px;width:1110px;height:2060px;border:22px solid #17211f;border-radius:94px;background:#f6f8fb;box-shadow:0 55px 110px rgba(4,47,43,.28);overflow:hidden}
+.notch{position:absolute;z-index:5;top:16px;left:390px;width:330px;height:62px;border-radius:40px;background:#111}
+.appbar{height:150px;padding:62px 48px 24px;background:#fff;display:flex;align-items:center;justify-content:space-between;font-size:35px;font-weight:800;border-bottom:1px solid #e2e8f0}
+.appbar .actions{font-size:28px;color:#0d7a70}.content{padding:38px}.welcome{font-size:27px;color:#64748b}.welcome b{display:block;color:#0f172a;font-size:39px;margin-top:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin-top:30px}.card{background:#fff;border-radius:28px;padding:30px;box-shadow:0 12px 30px rgba(15,23,42,.07);border:1px solid #e8eeec}
+.metric .icon{width:64px;height:64px;border-radius:20px;background:#e5f7f2;display:grid;place-items:center;color:#0d7a70;font-size:31px}.metric .value{font-size:55px;font-weight:900;margin-top:20px}.metric .label{font-size:25px;color:#64748b;margin-top:5px}
+.section{font-size:29px;font-weight:900;color:#5b2e24;margin:40px 0 20px;text-transform:uppercase}.task{display:flex;align-items:center;gap:22px;margin-bottom:20px}.num{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#0d7a70;color:white;font-weight:900;font-size:25px}.task-main{flex:1}.task-title{display:flex;justify-content:space-between;font-size:26px;font-weight:700}.bar{height:16px;background:#e5e7eb;border-radius:20px;margin-top:12px;overflow:hidden}.bar span{height:100%;display:block;background:#16a34a;border-radius:20px}
+.order{display:grid;grid-template-columns:65px 1fr auto;gap:20px;align-items:start;margin-bottom:22px}.priority{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:#f59e0b;color:#fff;font-size:26px;font-weight:900}.order h3{font-size:28px;margin:0}.muted{color:#64748b;font-size:22px;margin-top:7px}.badge{border-radius:999px;padding:10px 16px;font-size:19px;font-weight:800;background:#dcfce7;color:#15803d}.badge.warn{background:#fef3c7;color:#92400e}.badge.blue{background:#dbeafe;color:#1d4ed8}
+.items{margin-top:20px;border-top:1px solid #edf1f0}.item{display:flex;justify-content:space-between;padding:18px 0;border-bottom:1px solid #edf1f0;font-size:24px}.item b{color:#0d7a70}
+.stock-head,.stock-row{display:grid;grid-template-columns:1.7fr repeat(4,.72fr);gap:8px;align-items:center}.stock-head{background:#0d7a70;color:#fff;border-radius:18px 18px 0 0;padding:20px 16px;font-size:19px;font-weight:800}.stock-row{padding:22px 16px;border-bottom:1px solid #e5e7eb;font-size:20px}.stock-row b{font-size:22px}.stock-row span:not(:first-child){text-align:right}.green{color:#15803d;font-weight:800}.blue{color:#1d4ed8;font-weight:800}
+.transfer{display:flex;gap:20px;align-items:center}.route{display:flex;align-items:center;gap:12px;font-size:23px;font-weight:800;color:#0d7a70}.route span{padding:12px;background:#e5f7f2;border-radius:14px}.transfer-info{flex:1}.transfer-info h3{margin:0;font-size:27px}
+.chart{height:360px;display:flex;align-items:flex-end;gap:28px;padding:30px 15px 0;border-bottom:2px solid #cbd5e1}.chart span{flex:1;background:linear-gradient(#0d7a70,#5ed0bb);border-radius:14px 14px 0 0;position:relative}.chart span:after{content:attr(data-v);position:absolute;top:-34px;left:0;right:0;text-align:center;font-size:18px;font-weight:800;color:#0d7a70}
+.bottom{position:absolute;bottom:0;left:0;right:0;height:115px;background:#fff;border-top:1px solid #e2e8f0;display:flex;justify-content:space-around;align-items:center;color:#64748b;font-size:20px}.bottom b{color:#0d7a70}.footer-note{position:absolute;bottom:48px;left:0;right:0;text-align:center;color:#31534e;font-size:24px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="slide"><div class="veil"></div><div class="brand"><img src="hl-logo.png">HOÀNG LONG TNT</div><div class="headline"><h1 id="title"></h1><p id="subtitle"></p></div><div class="phone"><div class="notch"></div><div class="appbar"><span id="screenTitle"></span><span class="actions">●　☰</span></div><div class="content" id="content"></div><div class="bottom"><b>Trang chủ</b><span>Đơn hàng</span><span>Kho</span><span>Tài khoản</span></div></div><div class="footer-note">Vận hành thông minh · Kết nối xuyên suốt · Dữ liệu tức thời</div></div>
+<script>
+const slides={
+1:{title:"Một ứng dụng<br>cho toàn bộ vận hành",subtitle:"Theo dõi công việc, đơn hàng và tiến độ theo từng vai trò.",screen:"Dashboard",html:`
+<div class="welcome">Xin chào,<b>Quản lý vận hành</b></div><div class="grid">
+<div class="card metric"><div class="icon">✓</div><div class="value">48</div><div class="label">Đơn hôm nay</div></div>
+<div class="card metric"><div class="icon">▣</div><div class="value">12</div><div class="label">Đang đóng gói</div></div>
+<div class="card metric"><div class="icon">➜</div><div class="value">26</div><div class="label">Đang giao hàng</div></div>
+<div class="card metric"><div class="icon">↗</div><div class="value">97%</div><div class="label">Hoàn thành đúng hạn</div></div></div>
+<div class="section">Tiến độ công việc</div>
+<div class="card"><div class="task"><div class="num">1</div><div class="task-main"><div class="task-title"><span>Đơn cần đóng gói</span><span>18/24</span></div><div class="bar"><span style="width:75%"></span></div></div></div>
+<div class="task"><div class="num">2</div><div class="task-main"><div class="task-title"><span>Tiếp nhận hàng</span><span>8/10</span></div><div class="bar"><span style="width:80%"></span></div></div></div>
+<div class="task"><div class="num">3</div><div class="task-main"><div class="task-title"><span>Điều chuyển kho</span><span>6/6</span></div><div class="bar"><span style="width:100%"></span></div></div></div></div>`},
+2:{title:"Xử lý đơn hàng<br>nhanh và rõ ràng",subtitle:"Ưu tiên công việc, kiểm tra sản phẩm và cập nhật trạng thái ngay trên điện thoại.",screen:"Đơn cần đóng gói",html:`
+<div class="card order"><div class="priority">1</div><div><h3>Nguyễn Minh Anh</h3><div class="muted">#OD178132852286 · Hôm nay 08:32</div></div><span class="badge warn">Đang đóng</span>
+<div></div><div class="items"><div class="item"><span>Tôm sú size 20</span><b>12 kg</b></div><div class="item"><span>Mực ống loại 1</span><b>8 kg</b></div></div></div>
+<div class="card order"><div class="priority">2</div><div><h3>Trần Hoàng Nam</h3><div class="muted">#OD178132852445 · Hôm nay 09:10</div></div><span class="badge blue">Chờ xử lý</span>
+<div></div><div class="items"><div class="item"><span>Cá hồi phi lê</span><b>15 kg</b></div><div class="item"><span>Bạch tuộc</span><b>6 kg</b></div></div></div>
+<div class="card order"><div class="priority">3</div><div><h3>Công ty Minh Phát</h3><div class="muted">#OD178132852518 · Hôm nay 09:24</div></div><span class="badge">Đã đóng</span>
+<div></div><div class="items"><div class="item"><span>Cua biển loại 1</span><b>22 kg</b></div></div></div>`},
+3:{title:"Tồn kho hợp nhất<br>giữa mọi kho",subtitle:"Nắm rõ tồn đầu, nhập, xuất, book và available trong một màn hình.",screen:"Tồn kho tổng hợp",html:`
+<div class="grid"><div class="card metric"><div class="icon">▣</div><div class="value">2.886</div><div class="label">Tổng tồn cuối</div></div><div class="card metric"><div class="icon">✓</div><div class="value">2.778</div><div class="label">Available</div></div></div>
+<div class="section">Chi tiết tồn kho</div><div class="card" style="padding:0;overflow:hidden"><div class="stock-head"><span>Sản phẩm</span><span>Kho 1</span><span>Kho 2</span><span>Book</span><span>Available</span></div>
+<div class="stock-row"><b>Tôm sú</b><span>420</span><span>315</span><span class="blue">35</span><span class="green">700</span></div>
+<div class="stock-row"><b>Mực ống</b><span>286</span><span>190</span><span class="blue">18</span><span class="green">458</span></div>
+<div class="stock-row"><b>Cá hồi</b><span>175</span><span>240</span><span class="blue">25</span><span class="green">390</span></div>
+<div class="stock-row"><b>Bạch tuộc</b><span>198</span><span>156</span><span class="blue">12</span><span class="green">342</span></div>
+<div class="stock-row"><b>Cua biển</b><span>120</span><span>95</span><span class="blue">8</span><span class="green">207</span></div></div>`},
+4:{title:"Điều chuyển và giao nhận<br>không gián đoạn",subtitle:"Phối hợp kho và shipper theo từng trạng thái, giảm sai sót khi bàn giao.",screen:"Điều chuyển kho",html:`
+<div class="card transfer"><div class="priority">1</div><div class="transfer-info"><h3>Phiếu #26 · 8 đơn</h3><div class="muted">Shipper: Huy Nguyễn Đình</div><div class="route"><span>Kho Long An</span> → <span>Kho Chiến Lược</span></div></div><span class="badge warn">Chờ nhận</span></div>
+<div class="card transfer"><div class="priority">2</div><div class="transfer-info"><h3>Phiếu #25 · 16 đơn</h3><div class="muted">Shipper: Minh Trần</div><div class="route"><span>Kho Chiến Lược</span> → <span>Kho Long An</span></div></div><span class="badge blue">Đang giao</span></div>
+<div class="card transfer"><div class="priority">3</div><div class="transfer-info"><h3>Phiếu #24 · 5 đơn</h3><div class="muted">Tiếp nhận lúc 10:42</div><div class="route"><span>Kho Long An</span> → <span>Kho Chiến Lược</span></div></div><span class="badge">Hoàn tất</span></div>
+<div class="section">Cập nhật theo thời gian thực</div><div class="card"><div class="task"><div class="num">✓</div><div class="task-main"><div class="task-title"><span>Kho nguồn bàn giao</span><span>08:30</span></div></div></div><div class="task"><div class="num">✓</div><div class="task-main"><div class="task-title"><span>Shipper nhận hàng</span><span>09:05</span></div></div></div><div class="task"><div class="num">3</div><div class="task-main"><div class="task-title"><span>Kho đích chờ tiếp nhận</span><span>Đang chờ</span></div></div></div></div>`},
+5:{title:"Báo cáo tức thời<br>quyết định nhanh hơn",subtitle:"Theo dõi hiệu suất, sản lượng và tiến độ mọi lúc, mọi nơi.",screen:"Báo cáo vận hành",html:`
+<div class="grid"><div class="card metric"><div class="icon">↗</div><div class="value">+18%</div><div class="label">Sản lượng tuần này</div></div><div class="card metric"><div class="icon">✓</div><div class="value">96%</div><div class="label">Đơn hoàn thành</div></div></div>
+<div class="section">Sản lượng 7 ngày</div><div class="card"><div class="chart"><span style="height:45%" data-v="32"></span><span style="height:62%" data-v="45"></span><span style="height:56%" data-v="40"></span><span style="height:80%" data-v="58"></span><span style="height:72%" data-v="52"></span><span style="height:92%" data-v="67"></span><span style="height:84%" data-v="61"></span></div></div>
+<div class="section">Tổng quan hôm nay</div><div class="card"><div class="item"><span>Đơn đã đóng gói</span><b>42</b></div><div class="item"><span>Đơn đang vận chuyển</span><b>26</b></div><div class="item"><span>Phiếu điều chuyển hoàn tất</span><b>12</b></div><div class="item"><span>Tồn kho khả dụng</span><b>2.778</b></div></div>`}
+};
+const s=slides[new URLSearchParams(location.search).get("slide")||"1"];
+title.innerHTML=s.title;subtitle.textContent=s.subtitle;screenTitle.textContent=s.screen;content.innerHTML=s.html;
+</script>
+</body></html>
