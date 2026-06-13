@@ -36,6 +36,20 @@ class RoleScreenService {
     await _api.postJson('/shipper/assignments/$orderId/unassign');
   }
 
+  Future<void> updateDefaultShipper({
+    required int customerId,
+    required int shipperId,
+    bool transferPendingOrders = true,
+  }) async {
+    await _api.postJson(
+      '/shipper/customers/$customerId/default-shipper',
+      data: {
+        'shipper_id': shipperId,
+        'transfer_pending_orders': transferPendingOrders,
+      },
+    );
+  }
+
   Future<void> createDeliverySchedules() async {
     await _api.postJson('/shipper/assignments/create-schedules');
   }
@@ -151,6 +165,41 @@ class RoleScreenService {
       data is Map<String, dynamic> ? data : <String, dynamic>{},
     );
   }
+
+  Future<WarehouseConsolidatedInventoryData> warehouseInventory() async {
+    final response = await _api.getJson('/warehouse/inventory');
+    final data = response['data'];
+    return WarehouseConsolidatedInventoryData.fromJson(
+      data is Map<String, dynamic> ? data : <String, dynamic>{},
+    );
+  }
+}
+
+class WarehouseConsolidatedInventoryData {
+  const WarehouseConsolidatedInventoryData({
+    required this.selectedDate,
+    required this.warehouses,
+    required this.rows,
+    required this.totals,
+  });
+
+  final String selectedDate;
+  final List<Map<String, dynamic>> warehouses;
+  final List<Map<String, dynamic>> rows;
+  final Map<String, dynamic> totals;
+
+  factory WarehouseConsolidatedInventoryData.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return WarehouseConsolidatedInventoryData(
+      selectedDate: (json['selected_date'] ?? '').toString(),
+      warehouses: _list(json['warehouses']),
+      rows: _list(json['rows']),
+      totals: json['totals'] is Map<String, dynamic>
+          ? json['totals'] as Map<String, dynamic>
+          : <String, dynamic>{},
+    );
+  }
 }
 
 class WarehouseDashboardData {
@@ -164,6 +213,7 @@ class WarehouseDashboardData {
     required this.inventoryTitle,
     required this.inventoryRows,
     required this.inventoryTotals,
+    required this.otherWarehouseSummaries,
     required this.recentPacked,
   });
 
@@ -176,6 +226,7 @@ class WarehouseDashboardData {
   final String inventoryTitle;
   final List<WarehouseInventorySummaryRow> inventoryRows;
   final Map<String, int> inventoryTotals;
+  final List<WarehouseOtherInventorySummary> otherWarehouseSummaries;
   final List<WarehouseRecentPackedOrder> recentPacked;
 
   factory WarehouseDashboardData.fromJson(Map<String, dynamic> json) {
@@ -214,9 +265,37 @@ class WarehouseDashboardData {
         'export': _int(totals['export']),
         'closing': _int(totals['closing']),
       },
+      otherWarehouseSummaries: _list(
+        json['other_warehouse_summaries'],
+      ).map(WarehouseOtherInventorySummary.fromJson).toList(),
       recentPacked: _list(
         json['recent_packed'],
       ).map(WarehouseRecentPackedOrder.fromJson).toList(),
+    );
+  }
+}
+
+class WarehouseOtherInventorySummary {
+  const WarehouseOtherInventorySummary({
+    required this.warehouseId,
+    required this.warehouseName,
+    required this.title,
+    required this.rows,
+  });
+
+  final int warehouseId;
+  final String warehouseName;
+  final String title;
+  final List<WarehouseInventorySummaryRow> rows;
+
+  factory WarehouseOtherInventorySummary.fromJson(Map<String, dynamic> json) {
+    return WarehouseOtherInventorySummary(
+      warehouseId: _int(json['warehouse_id']),
+      warehouseName: (json['warehouse_name'] ?? '').toString(),
+      title: (json['title'] ?? '').toString(),
+      rows: _list(
+        json['rows'],
+      ).map(WarehouseInventorySummaryRow.fromJson).toList(),
     );
   }
 }
@@ -479,10 +558,17 @@ class WarehouseProductOption {
 }
 
 class RoleScreenData {
-  const RoleScreenData({required this.cards, required this.items});
+  const RoleScreenData({
+    required this.cards,
+    required this.items,
+    this.selectedDate = '',
+    this.timeline = const [],
+  });
 
   final List<RoleCardData> cards;
   final List<RoleListItemData> items;
+  final String selectedDate;
+  final List<Map<String, dynamic>> timeline;
 
   factory RoleScreenData.fromResponse(Map<String, dynamic> response) {
     final data = response['data'];
@@ -520,7 +606,15 @@ class RoleScreenData {
             .toList();
         return RoleScreenData(cards: metricCards, items: const []);
       }
-      return RoleScreenData(cards: cards, items: items);
+      return RoleScreenData(
+        cards: cards,
+        items: items,
+        selectedDate: (data['selected_date'] ?? '').toString(),
+        timeline: (data['timeline'] as List? ?? const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList(),
+      );
     }
 
     return const RoleScreenData(cards: [], items: []);

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/app_version.dart';
 import '../widgets/update_dialog.dart';
@@ -55,14 +56,19 @@ class UpdateService {
       }
 
       _isDialogOpen = true;
+      final isIos = Platform.isIOS;
       await Get.dialog<void>(
         UpdateDialog(
           currentVersion: packageInfo.version,
           latestVersion: latest,
-          onUpdateNow: (onProgress) => downloadAndOpenApk(
-            latest.apkUrl.isEmpty ? defaultApkUrl : latest.apkUrl,
-            onProgress: onProgress,
-          ),
+          updateActionLabel: isIos ? 'Mở App Store' : 'Cập nhật ngay',
+          showDownloadProgress: !isIos,
+          onUpdateNow: isIos
+              ? (_) => openIosUpdate(latest.iosUrl)
+              : (onProgress) => downloadAndOpenApk(
+                  latest.apkUrl.isEmpty ? defaultApkUrl : latest.apkUrl,
+                  onProgress: onProgress,
+                ),
           onClosed: () => _isDialogOpen = false,
         ),
         barrierDismissible: !latest.forceUpdate,
@@ -116,6 +122,21 @@ class UpdateService {
     );
     if (result.type != ResultType.done) {
       throw Exception(result.message);
+    }
+  }
+
+  Future<void> openIosUpdate(String iosUrl) async {
+    final normalizedUrl = iosUrl.trim();
+    if (normalizedUrl.isEmpty) {
+      throw Exception(
+        'Chưa cấu hình ios_url trong version.json. Hãy nhập đường dẫn App Store của ứng dụng.',
+      );
+    }
+
+    final uri = Uri.tryParse(normalizedUrl);
+    if (uri == null ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Không thể mở App Store.');
     }
   }
 }

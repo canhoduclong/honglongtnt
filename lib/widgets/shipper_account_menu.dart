@@ -58,7 +58,7 @@ class AccountMenu extends StatelessWidget {
             child: ListTile(
               leading: Icon(Icons.system_update_rounded),
               title: Text('Cập nhật ứng dụng'),
-              subtitle: Text('Kiểm tra và tải bản mới'),
+              subtitle: Text('Kiểm tra và cập nhật bản mới'),
               contentPadding: EdgeInsets.zero,
             ),
           ),

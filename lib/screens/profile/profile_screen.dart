@@ -104,7 +104,9 @@ class ProfileScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.system_update_rounded),
                     title: const Text('Cập nhật ứng dụng'),
-                    subtitle: const Text('Kiểm tra và tải bản APK mới nhất'),
+                    subtitle: const Text(
+                      'Kiểm tra và cập nhật phiên bản mới nhất',
+                    ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => updateService.checkForUpdate(manual: true),
                   ),

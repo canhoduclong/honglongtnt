@@ -384,10 +384,14 @@ class RoleScreen extends StatefulWidget {
 
 class _RoleScreenState extends State<RoleScreen> {
   late Future<RoleScreenData> _future;
+  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
+    _selectedDate = widget.menu.key == 'manage_assignments'
+        ? DateTime.now().add(const Duration(days: 1))
+        : DateTime.now();
     _load();
   }
 
@@ -395,12 +399,40 @@ class _RoleScreenState extends State<RoleScreen> {
   void didUpdateWidget(covariant RoleScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.menu.api != widget.menu.api) {
+      _selectedDate = widget.menu.key == 'manage_assignments'
+          ? DateTime.now().add(const Duration(days: 1))
+          : DateTime.now();
       _load();
     }
   }
 
   void _load() {
-    _future = Get.find<RoleScreenService>().load(widget.menu.api);
+    _future = Get.find<RoleScreenService>().load(
+      widget.menu.api,
+      query: _usesDeliveryDate
+          ? {'date': DateFormat('yyyy-MM-dd').format(_selectedDate)}
+          : null,
+    );
+  }
+
+  bool get _usesDeliveryDate => [
+    'manage_assignments',
+    'incoming_transfers',
+    'warehouse_transfers',
+  ].contains(widget.menu.key);
+
+  Future<void> _pickDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (selected == null) return;
+    setState(() {
+      _selectedDate = selected;
+      _load();
+    });
   }
 
   Future<void> _refresh() async {
@@ -425,6 +457,11 @@ class _RoleScreenState extends State<RoleScreen> {
     if (widget.menu.key == 'dashboard' &&
         widget.menu.api == '/warehouse/dashboard') {
       return WarehouseDashboardScreen(onMenuSelected: widget.onMenuSelected);
+    }
+
+    if (widget.menu.key == 'inventory' &&
+        widget.menu.api == '/warehouse/inventory') {
+      return const WarehouseInventoryScreen();
     }
 
     if (widget.menu.key == 'dashboard' &&
@@ -461,6 +498,20 @@ class _RoleScreenState extends State<RoleScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (_usesDeliveryDate) ...[
+                OutlinedButton.icon(
+                  onPressed: _pickDate,
+                  icon: const Icon(Icons.calendar_month_rounded),
+                  label: Text(
+                    'Ngày giao ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (data.timeline.isNotEmpty) ...[
+                _TransferTimeline(groups: data.timeline),
+                const SizedBox(height: 16),
+              ],
               if (data.cards.isNotEmpty)
                 GridView.count(
                   crossAxisCount: 2,
@@ -511,6 +562,235 @@ class _RoleScreenState extends State<RoleScreen> {
                   ),
                   const SizedBox(height: 10),
                 ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TransferTimeline extends StatelessWidget {
+  const _TransferTimeline({required this.groups});
+
+  final List<Map<String, dynamic>> groups;
+
+  Color _color(String status) => switch (status) {
+    'pending_shipper_pickup' => const Color(0xFF0F766E),
+    'in_transit' => const Color(0xFFF59E0B),
+    'delivered_waiting_receive' => const Color(0xFF0EA5E9),
+    'received_completed' => const Color(0xFF64748B),
+    _ => const Color(0xFF0EA5E9),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final group in groups) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFF6366F1)),
+                  ),
+                  child: Text(
+                    '${group['hour']}:00',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                for (final order in (group['orders'] as List? ?? const [])) ...[
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: _color(
+                      order is Map ? '${order['status'] ?? ''}' : '',
+                    ),
+                    child: Text(
+                      order is Map ? '${order['sequence'] ?? ''}' : '',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                const SizedBox(width: 14),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class WarehouseInventoryScreen extends StatefulWidget {
+  const WarehouseInventoryScreen({super.key});
+
+  @override
+  State<WarehouseInventoryScreen> createState() =>
+      _WarehouseInventoryScreenState();
+}
+
+class _WarehouseInventoryScreenState extends State<WarehouseInventoryScreen> {
+  late Future<WarehouseConsolidatedInventoryData> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    _future = Get.find<RoleScreenService>().warehouseInventory();
+  }
+
+  Future<void> _refresh() async {
+    setState(_load);
+    await _future;
+  }
+
+  int _number(Map<dynamic, dynamic> source, String key) {
+    return int.tryParse('${source[key] ?? 0}') ?? 0;
+  }
+
+  Map<dynamic, dynamic> _warehouseValues(
+    Map<dynamic, dynamic> row,
+    Object? warehouseId,
+  ) {
+    final values = row['warehouses'];
+    if (values is! Map) return const {};
+    final result = values['$warehouseId'];
+    return result is Map ? result : const {};
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<WarehouseConsolidatedInventoryData>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return _MessageState(
+            icon: Icons.error_outline_rounded,
+            title: 'Không tải được tồn kho',
+            subtitle: snapshot.error.toString(),
+            onRetry: _refresh,
+          );
+        }
+
+        final data = snapshot.data;
+        if (data == null || data.rows.isEmpty) {
+          return const _MessageState(
+            icon: Icons.inventory_2_outlined,
+            title: 'Chưa có dữ liệu tồn kho',
+            subtitle: 'Dữ liệu tồn kho các kho sẽ hiển thị tại đây.',
+          );
+        }
+
+        final columns = <DataColumn>[
+          const DataColumn(label: Text('Sản phẩm')),
+          const DataColumn(label: Text('ĐVT')),
+          for (final warehouse in data.warehouses) ...[
+            DataColumn(label: Text('${warehouse['name']}\nTồn đầu')),
+            DataColumn(label: Text('${warehouse['name']}\nNhập')),
+            DataColumn(label: Text('${warehouse['name']}\nXuất')),
+            DataColumn(label: Text('${warehouse['name']}\nTồn cuối')),
+          ],
+          const DataColumn(label: Text('Available')),
+          const DataColumn(label: Text('Book')),
+          const DataColumn(label: Text('Tổng xuất')),
+          const DataColumn(label: Text('Tổng tồn cuối')),
+        ];
+
+        DataRow rowFor(Map<String, dynamic> row, {bool total = false}) {
+          return DataRow(
+            color: WidgetStatePropertyAll(
+              total ? const Color(0xFFD1FAE5) : Colors.white,
+            ),
+            cells: [
+              DataCell(
+                SizedBox(
+                  width: 170,
+                  child: Text(
+                    total ? 'TỔNG TOÀN BỘ' : '${row['name'] ?? ''}',
+                    style: TextStyle(
+                      fontWeight: total ? FontWeight.w900 : FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              DataCell(Text(total ? '' : '${row['unit'] ?? '—'}')),
+              for (final warehouse in data.warehouses) ...[
+                DataCell(
+                  Text(
+                    '${_number(_warehouseValues(row, warehouse['id']), 'opening')}',
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    '${_number(_warehouseValues(row, warehouse['id']), 'import')}',
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    '${_number(_warehouseValues(row, warehouse['id']), 'export')}',
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    '${_number(_warehouseValues(row, warehouse['id']), 'closing')}',
+                  ),
+                ),
+              ],
+              DataCell(Text('${_number(row, 'available')}')),
+              DataCell(Text('${_number(row, 'book')}')),
+              DataCell(Text('${_number(row, 'total_export')}')),
+              DataCell(Text('${_number(row, 'total_closing')}')),
+            ],
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 60),
+            children: [
+              Text(
+                'Tồn kho tổng hợp ngày ${data.selectedDate}',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Vuốt ngang để xem từng kho và các cột tổng mặt bằng.',
+                style: TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: const WidgetStatePropertyAll(
+                    Color(0xFFDFF3EF),
+                  ),
+                  columnSpacing: 22,
+                  columns: columns,
+                  rows: [
+                    for (final row in data.rows) rowFor(row),
+                    rowFor(data.totals, total: true),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -1331,7 +1611,7 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
         return RefreshIndicator(
           onRefresh: _refresh,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 65),
             children: [
               _WarehouseSectionTitle(title: 'Tiến độ công việc'),
               const SizedBox(height: 10),
@@ -1368,7 +1648,17 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
               const SizedBox(height: 18),
               _WarehouseSectionTitle(title: 'Thống kê tồn kho'),
               const SizedBox(height: 10),
-              _WarehouseInventorySummary(data: data),
+              _WarehouseInventorySummary(
+                title: data.inventoryTitle,
+                rows: data.inventoryRows,
+              ),
+              for (final summary in data.otherWarehouseSummaries) ...[
+                const SizedBox(height: 18),
+                _WarehouseInventorySummary(
+                  title: summary.title,
+                  rows: summary.rows,
+                ),
+              ],
               if (data.recentPacked.isNotEmpty) ...[
                 const SizedBox(height: 18),
                 _WarehouseRecentPackedTable(orders: data.recentPacked),
@@ -1647,9 +1937,10 @@ class _WarehouseChangeList extends StatelessWidget {
 }
 
 class _WarehouseInventorySummary extends StatefulWidget {
-  const _WarehouseInventorySummary({required this.data});
+  const _WarehouseInventorySummary({required this.title, required this.rows});
 
-  final WarehouseDashboardData data;
+  final String title;
+  final List<WarehouseInventorySummaryRow> rows;
 
   @override
   State<_WarehouseInventorySummary> createState() =>
@@ -1662,15 +1953,10 @@ class _WarehouseInventorySummaryState
 
   @override
   Widget build(BuildContext context) {
-    final rows = widget.data.inventoryRows;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          widget.data.inventoryTitle,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
+        Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -1679,7 +1965,7 @@ class _WarehouseInventorySummaryState
             child: Column(
               children: [
                 const _InventoryHeaderRow(),
-                if (rows.isEmpty)
+                if (widget.rows.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(16),
                     child: Text(
@@ -1687,7 +1973,7 @@ class _WarehouseInventorySummaryState
                     ),
                   )
                 else
-                  for (final row in rows) ...[
+                  for (final row in widget.rows) ...[
                     _InventoryProductRow(
                       row: row,
                       expanded: _expanded.contains(row.productId),
@@ -2030,9 +2316,11 @@ class _WarehouseOrdersScreenState extends State<WarehouseOrdersScreen> {
                 return a.id.compareTo(b.id);
               });
 
-        _keys
-          ..clear()
-          ..addEntries(orders.map((order) => MapEntry(order.id, GlobalKey())));
+        final orderIds = orders.map((order) => order.id).toSet();
+        _keys.removeWhere((orderId, _) => !orderIds.contains(orderId));
+        for (final order in orders) {
+          _keys.putIfAbsent(order.id, GlobalKey.new);
+        }
 
         if (orders.isEmpty) {
           return RefreshIndicator(
@@ -2063,21 +2351,24 @@ class _WarehouseOrdersScreenState extends State<WarehouseOrdersScreen> {
                   onSelected: _jumpTo,
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                sliver: SliverList.separated(
-                  itemCount: orders.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    return KeyedSubtree(
-                      key: _keys[order.id],
-                      child: WarehouseOrderCard(
-                        order: order,
-                        onChanged: _refresh,
-                      ),
-                    );
-                  },
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  child: Column(
+                    children: [
+                      for (var index = 0; index < orders.length; index++) ...[
+                        KeyedSubtree(
+                          key: _keys[orders[index].id],
+                          child: WarehouseOrderCard(
+                            order: orders[index],
+                            onChanged: _refresh,
+                          ),
+                        ),
+                        if (index < orders.length - 1)
+                          const SizedBox(height: 12),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -2203,22 +2494,10 @@ class _PriorityNavHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         scrollDirection: Axis.horizontal,
-        itemCount: orders.length + 1,
+        itemCount: orders.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          if (index == 0) {
-            return const Center(
-              child: Text(
-                'Điều hướng nhanh:',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            );
-          }
-
-          final order = orders[index - 1];
+          final order = orders[index];
           return InkWell(
             borderRadius: BorderRadius.circular(99),
             onTap: () => onSelected(order.id),
@@ -2290,7 +2569,7 @@ class WarehouseOrderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '#${order.sequenceLabel}, ${Formatters.dateTime(order.createdAt)}, ${order.code}',
+                        '#${order.sequenceLabel}, lên đơn ${Formatters.dateTime(order.createdAt)}, giao ${order.deliveryDate.isEmpty ? 'chưa cập nhật' : order.deliveryDate}, ${order.code}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Color(0xFF64748B)),
@@ -2298,6 +2577,18 @@ class WarehouseOrderCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (order.warehouseCanAdjust) ...[
+                  const SizedBox(width: 8),
+                  const Tooltip(
+                    message: 'Kho được phép trực tiếp điều chỉnh đơn',
+                    child: Icon(
+                      Icons.edit_rounded,
+                      color: Color(0xFF2563EB),
+                      size: 22,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 8),
                 _StatusPill(order: order),
               ],
             ),
@@ -3136,8 +3427,16 @@ class _WarehouseOrderActions extends StatelessWidget {
             ),
             FilledButton.icon(
               onPressed: () => Navigator.of(context).pop(true),
-              icon: const Icon(Icons.send_rounded),
-              label: const Text('Gửi sale xác nhận'),
+              icon: Icon(
+                order.warehouseCanAdjust
+                    ? Icons.save_rounded
+                    : Icons.send_rounded,
+              ),
+              label: Text(
+                order.warehouseCanAdjust
+                    ? 'Lưu điều chỉnh'
+                    : 'Gửi sale xác nhận',
+              ),
             ),
           ],
         ),
@@ -3177,7 +3476,9 @@ class _WarehouseOrderActions extends StatelessWidget {
         itemQuantities: quantities,
         newItemQuantities: newItemQuantities,
       ),
-      'Đã gửi yêu cầu điều chỉnh cho sale',
+      order.warehouseCanAdjust
+          ? 'Đã áp dụng điều chỉnh đơn hàng'
+          : 'Đã gửi yêu cầu điều chỉnh cho sale',
     );
   }
 }
@@ -3193,6 +3494,7 @@ class WarehouseOrderData {
     required this.customerName,
     required this.address,
     required this.deliveryTime,
+    required this.deliveryDate,
     required this.createdAt,
     required this.adjustmentStatus,
     required this.adjustmentNote,
@@ -3204,6 +3506,7 @@ class WarehouseOrderData {
     required this.canStartPacking,
     required this.canCompletePacking,
     required this.canUndoStartPacking,
+    required this.warehouseCanAdjust,
     required this.items,
   });
 
@@ -3216,6 +3519,7 @@ class WarehouseOrderData {
   final String customerName;
   final String address;
   final String deliveryTime;
+  final String deliveryDate;
   final String createdAt;
   final String adjustmentStatus;
   final String adjustmentNote;
@@ -3227,6 +3531,7 @@ class WarehouseOrderData {
   final bool canStartPacking;
   final bool canCompletePacking;
   final bool canUndoStartPacking;
+  final bool warehouseCanAdjust;
   final List<WarehouseOrderItemData> items;
 
   String get sequenceLabel => sequence > 0 ? '$sequence' : '—';
@@ -3250,6 +3555,7 @@ class WarehouseOrderData {
       address: (raw['shipping_address'] ?? customer['address'] ?? '')
           .toString(),
       deliveryTime: (raw['delivery_time'] ?? '').toString(),
+      deliveryDate: (raw['delivery_date'] ?? '').toString(),
       createdAt: (raw['created_at'] ?? '').toString(),
       adjustmentStatus: (raw['warehouse_adjustment_status'] ?? '').toString(),
       adjustmentNote: (raw['warehouse_adjustment_note'] ?? '').toString(),
@@ -3266,6 +3572,7 @@ class WarehouseOrderData {
       canStartPacking: raw['can_start_packing'] == true,
       canCompletePacking: raw['can_complete_packing'] == true,
       canUndoStartPacking: raw['can_undo_start_packing'] == true,
+      warehouseCanAdjust: raw['warehouse_can_adjust'] == true,
       items: items,
     );
   }
@@ -3474,6 +3781,39 @@ class _RoleListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (menu.key == 'manage_assignments') {
+      final sequence = item.raw['daily_sequence'] ?? '?';
+      final deliveryTime = '${item.raw['delivery_time'] ?? ''}'.trim();
+      final address = '${item.raw['customer_address'] ?? ''}'.trim();
+      return Card(
+        child: ListTile(
+          onTap: () => _showDetail(context),
+          leading: CircleAvatar(
+            child: Text(
+              '$sequence',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          title: Text(
+            item.subtitle,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          subtitle: Text(
+            [
+              deliveryTime,
+              address,
+            ].where((value) => value.isNotEmpty).join(' • '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Text(
+            Formatters.money(item.amount),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+      );
+    }
+
     return Card(
       child: ListTile(
         onTap: () => _showDetail(context),
@@ -3619,8 +3959,41 @@ class _RoleListTile extends StatelessWidget {
         .whereType<Map<String, dynamic>>()
         .toList();
     final assignedId = int.tryParse('${item.raw['shipper_id'] ?? ''}');
+    final customerId = int.tryParse('${item.raw['customer_id'] ?? ''}');
+    final defaultShipperName = '${item.raw['default_shipper_name'] ?? ''}'
+        .trim();
 
     return [
+      OutlinedButton.icon(
+        onPressed: customerId == null || shippers.isEmpty
+            ? null
+            : () async {
+                final selected = await _selectShipper(
+                  context,
+                  shippers,
+                  'Chọn shipper cố định',
+                );
+                if (selected == null || !context.mounted) return;
+                Navigator.of(context).pop();
+                try {
+                  await Get.find<RoleScreenService>().updateDefaultShipper(
+                    customerId: customerId,
+                    shipperId: selected,
+                  );
+                  await onChanged();
+                  Get.snackbar('Thành công', 'Đã đổi shipper cố định');
+                } catch (error) {
+                  Get.snackbar('Lỗi', error.toString());
+                }
+              },
+        icon: const Icon(Icons.person_pin_circle_rounded),
+        label: Text(
+          defaultShipperName.isEmpty
+              ? 'Chọn shipper cố định'
+              : defaultShipperName,
+        ),
+      ),
+      const SizedBox(height: 8),
       if (assignedId != null)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -3633,21 +4006,10 @@ class _RoleListTile extends StatelessWidget {
         onPressed: shippers.isEmpty
             ? null
             : () async {
-                final selected = await showDialog<int>(
-                  context: context,
-                  builder: (dialogContext) => SimpleDialog(
-                    title: const Text('Chọn shipper'),
-                    children: [
-                      for (final shipper in shippers)
-                        SimpleDialogOption(
-                          onPressed: () => Navigator.pop(
-                            dialogContext,
-                            int.tryParse('${shipper['id']}'),
-                          ),
-                          child: Text((shipper['name'] ?? '').toString()),
-                        ),
-                    ],
-                  ),
+                final selected = await _selectShipper(
+                  context,
+                  shippers,
+                  'Chọn shipper',
                 );
                 if (selected == null || !context.mounted) return;
                 Navigator.of(context).pop();
@@ -3683,6 +4045,29 @@ class _RoleListTile extends StatelessWidget {
         ),
       ],
     ];
+  }
+
+  Future<int?> _selectShipper(
+    BuildContext context,
+    List<Map<String, dynamic>> shippers,
+    String title,
+  ) {
+    return showDialog<int>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(title),
+        children: [
+          for (final shipper in shippers)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                int.tryParse('${shipper['id']}'),
+              ),
+              child: Text((shipper['name'] ?? '').toString()),
+            ),
+        ],
+      ),
+    );
   }
 
   List<Widget> _returnActions(BuildContext context) {

@@ -382,7 +382,12 @@ class _SaleScreenState extends State<SaleScreen> {
               const SizedBox(height: 8),
               _Info(
                 Icons.schedule_outlined,
-                Formatters.dateTime('${order['created_at'] ?? ''}'),
+                'Lên đơn: ${Formatters.dateTime('${order['created_at'] ?? ''}')}',
+              ),
+              const SizedBox(height: 4),
+              _Info(
+                Icons.local_shipping_outlined,
+                'Ngày giao: ${order['delivery_date'] ?? 'Chưa cập nhật'}',
               ),
               if (items.isNotEmpty) ...[
                 const SizedBox(height: 8),

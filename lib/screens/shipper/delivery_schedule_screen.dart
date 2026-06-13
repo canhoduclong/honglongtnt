@@ -345,6 +345,13 @@ class _ScheduleOrderCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             _InfoRow(
+              icon: Icons.calendar_today_rounded,
+              text: order.deliveryDate?.isNotEmpty == true
+                  ? 'Ngày giao: ${order.deliveryDate}'
+                  : 'Ngày giao chưa cập nhật',
+            ),
+            const SizedBox(height: 6),
+            _InfoRow(
               icon: Icons.shopping_bag_rounded,
               text:
                   '${order.itemCount ?? 0} sản phẩm | ${Formatters.money(order.total)} | Đơn $position/$total',

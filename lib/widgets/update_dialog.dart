@@ -8,12 +8,16 @@ class UpdateDialog extends StatefulWidget {
     super.key,
     required this.currentVersion,
     required this.latestVersion,
+    required this.updateActionLabel,
+    required this.showDownloadProgress,
     required this.onUpdateNow,
     required this.onClosed,
   });
 
   final String currentVersion;
   final AppVersion latestVersion;
+  final String updateActionLabel;
+  final bool showDownloadProgress;
   final Future<void> Function(void Function(double progress) onProgress)
   onUpdateNow;
   final VoidCallback onClosed;
@@ -54,7 +58,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                   ? 'Bản cập nhật mới đã sẵn sàng.'
                   : widget.latestVersion.message,
             ),
-            if (_isDownloading) ...[
+            if (_isDownloading && widget.showDownloadProgress) ...[
               const SizedBox(height: 18),
               const Text('Đang tải bản cập nhật...'),
               const SizedBox(height: 10),
@@ -84,7 +88,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
             ),
           FilledButton(
             onPressed: _isDownloading ? null : _downloadAndOpen,
-            child: const Text('Cập nhật ngay'),
+            child: Text(widget.updateActionLabel),
           ),
         ],
       ),
@@ -110,7 +114,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         return;
       }
       setState(() {
-        _errorMessage = 'Không thể tải hoặc mở file cập nhật: $error';
+        _errorMessage = 'Không thể thực hiện cập nhật: $error';
         _isDownloading = false;
       });
     }

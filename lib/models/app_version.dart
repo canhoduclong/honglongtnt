@@ -3,6 +3,7 @@ class AppVersion {
     required this.version,
     required this.versionCode,
     required this.apkUrl,
+    required this.iosUrl,
     required this.forceUpdate,
     required this.message,
   });
@@ -12,6 +13,7 @@ class AppVersion {
       version: (json['version'] ?? '').toString(),
       versionCode: _readInt(json['version_code']),
       apkUrl: (json['apk_url'] ?? '').toString(),
+      iosUrl: (json['ios_url'] ?? '').toString(),
       forceUpdate: json['force_update'] == true,
       message: (json['message'] ?? '').toString(),
     );
@@ -20,6 +22,7 @@ class AppVersion {
   final String version;
   final int versionCode;
   final String apkUrl;
+  final String iosUrl;
   final bool forceUpdate;
   final String message;
 

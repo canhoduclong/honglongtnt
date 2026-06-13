@@ -13,6 +13,7 @@ class OrderModel {
     this.returnReason,
     this.note,
     this.deliveryTime,
+    this.deliveryDate,
     this.dailySequence,
     this.itemCount,
     this.items = const [],
@@ -30,6 +31,7 @@ class OrderModel {
   final String? returnReason;
   final String? note;
   final String? deliveryTime;
+  final String? deliveryDate;
   final int? dailySequence;
   final int? itemCount;
   final List<OrderItemModel> items;
@@ -61,6 +63,7 @@ class OrderModel {
       returnReason: json['return_reason']?.toString(),
       note: json['note']?.toString(),
       deliveryTime: json['delivery_time']?.toString(),
+      deliveryDate: json['delivery_date']?.toString(),
       dailySequence: json['daily_sequence'] == null
           ? null
           : int.tryParse('${json['daily_sequence']}'),
