@@ -118,6 +118,30 @@ class SaleService {
     return _data(await _api.getJson('/sale/orders/$id'));
   }
 
+  Future<SaleListData> draftOrders() {
+    return _list('/sale/draft-orders', query: {'per_page': 50});
+  }
+
+  Future<void> parseDraftOrders(String text) async {
+    await _api.postJson('/sale/draft-orders/parse', data: {'text': text});
+  }
+
+  Future<void> confirmDraftOrder(int id) async {
+    await _api.postJson('/sale/draft-orders/$id/confirm');
+  }
+
+  Future<void> copyDraftOrder(int id) async {
+    await _api.postJson('/sale/draft-orders/$id/copy');
+  }
+
+  Future<void> copyConfirmDraftOrder(int id) async {
+    await _api.postJson('/sale/draft-orders/$id/copy-confirm');
+  }
+
+  Future<void> deleteDraftOrder(int id) async {
+    await _api.deleteJson('/sale/draft-orders/$id');
+  }
+
   Future<void> updateOrder(int id, Map<String, dynamic> data) async {
     await _api.putJson('/sale/orders/$id', data: data);
   }

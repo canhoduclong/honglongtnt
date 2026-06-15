@@ -27,7 +27,8 @@ class _SaleScreenState extends State<SaleScreen> {
   SaleService get _service => Get.find<SaleService>();
   bool get _customers => widget.menu.key == 'customers';
   bool get _orders => widget.menu.key == 'my_orders';
-  bool get _approvals => !_customers && !_orders;
+  bool get _drafts => widget.menu.key == 'draft_orders';
+  bool get _approvals => !_customers && !_orders && !_drafts;
 
   @override
   void initState() {
@@ -66,6 +67,8 @@ class _SaleScreenState extends State<SaleScreen> {
             : _filter,
         sortBy: _sort,
       );
+    } else if (_drafts) {
+      _future = _service.draftOrders();
     } else if (_orders) {
       _future = _service.orders(
         search: _search.text,
@@ -137,14 +140,16 @@ class _SaleScreenState extends State<SaleScreen> {
             ),
           ],
         ),
-        if (_customers)
+        if (_customers || _drafts)
           Positioned(
             right: 16,
             bottom: 16,
             child: FloatingActionButton.extended(
-              onPressed: () => _openCustomerForm(),
-              icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Thêm khách'),
+              onPressed: _drafts ? _openDraftImport : () => _openCustomerForm(),
+              icon: Icon(
+                _drafts ? Icons.content_paste_go : Icons.person_add_alt_1,
+              ),
+              label: Text(_drafts ? 'Nhập text' : 'Thêm khách'),
             ),
           ),
       ],
@@ -154,6 +159,8 @@ class _SaleScreenState extends State<SaleScreen> {
   Widget _toolbar() {
     final filters = _customers
         ? const {'': 'Tất cả', 'processing': 'Đang chăm sóc'}
+        : _drafts
+        ? const {'': 'Tất cả'}
         : const {
             '': 'Tất cả',
             'pending_leader_approval': 'Chờ Leader',
@@ -175,6 +182,8 @@ class _SaleScreenState extends State<SaleScreen> {
               decoration: InputDecoration(
                 hintText: _customers
                     ? 'Tìm tên, điện thoại, email'
+                    : _drafts
+                    ? 'Đơn nháp của sale'
                     : 'Tìm mã đơn, khách hàng',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
@@ -246,7 +255,7 @@ class _SaleScreenState extends State<SaleScreen> {
                       ),
                   ],
                 ),
-                if (!_approvals)
+                if (!_approvals && !_drafts)
                   FilterChip(
                     selected: _trash,
                     label: const Text('Thùng rác'),
@@ -345,7 +354,7 @@ class _SaleScreenState extends State<SaleScreen> {
       margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _showOrder(order),
+        onTap: _drafts ? null : () => _showOrder(order),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -414,7 +423,23 @@ class _SaleScreenState extends State<SaleScreen> {
                       onPressed: () => _approvalAction(order, true),
                       child: const Text('Duyệt'),
                     ),
-                  ] else if (_orders)
+                  ] else if (_drafts)
+                    PopupMenuButton<String>(
+                      onSelected: (value) => _draftAction(value, order),
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'confirm',
+                          child: Text('Xác nhận'),
+                        ),
+                        PopupMenuItem(value: 'copy', child: Text('Sao chép')),
+                        PopupMenuItem(
+                          value: 'copy_confirm',
+                          child: Text('Sao chép & Xác nhận'),
+                        ),
+                        PopupMenuItem(value: 'delete', child: Text('Xóa')),
+                      ],
+                    )
+                  else if (_orders)
                     PopupMenuButton<String>(
                       onSelected: (value) => _orderAction(value, order),
                       itemBuilder: (_) => [
@@ -512,6 +537,35 @@ class _SaleScreenState extends State<SaleScreen> {
           ? _service.trashOrder(id)
           : _service.confirmCopy(id),
     );
+  }
+
+  Future<void> _draftAction(String action, Map<String, dynamic> draft) async {
+    final id = _num(draft['id']).toInt();
+    final message = action == 'delete'
+        ? 'Xóa đơn nháp này?'
+        : action == 'copy'
+        ? 'Sao chép đơn nháp này?'
+        : action == 'copy_confirm'
+        ? 'Sao chép và xác nhận thành đơn chính?'
+        : 'Xác nhận đơn nháp thành đơn chính?';
+    if (!await _confirm(message)) return;
+    await _run(
+      () => switch (action) {
+        'delete' => _service.deleteDraftOrder(id),
+        'copy' => _service.copyDraftOrder(id),
+        'copy_confirm' => _service.copyConfirmDraftOrder(id),
+        _ => _service.confirmDraftOrder(id),
+      },
+    );
+  }
+
+  Future<void> _openDraftImport() async {
+    final text = await _askText(
+      'Dán nội dung đơn hàng từ Zalo',
+      required: true,
+    );
+    if (text == null) return;
+    await _run(() => _service.parseDraftOrders(text));
   }
 
   Future<void> _approvalAction(Map<String, dynamic> order, bool approve) async {

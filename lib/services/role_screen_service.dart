@@ -50,8 +50,11 @@ class RoleScreenService {
     );
   }
 
-  Future<void> createDeliverySchedules() async {
-    await _api.postJson('/shipper/assignments/create-schedules');
+  Future<void> createDeliverySchedules({required String date}) async {
+    await _api.postJson(
+      '/shipper/assignments/create-schedules',
+      data: {'date': date},
+    );
   }
 
   Future<void> receiveReturn(int returnId) async {
@@ -562,12 +565,14 @@ class RoleScreenData {
     required this.cards,
     required this.items,
     this.selectedDate = '',
+    this.canPublishSchedule = false,
     this.timeline = const [],
   });
 
   final List<RoleCardData> cards;
   final List<RoleListItemData> items;
   final String selectedDate;
+  final bool canPublishSchedule;
   final List<Map<String, dynamic>> timeline;
 
   factory RoleScreenData.fromResponse(Map<String, dynamic> response) {
@@ -610,6 +615,7 @@ class RoleScreenData {
         cards: cards,
         items: items,
         selectedDate: (data['selected_date'] ?? '').toString(),
+        canPublishSchedule: data['can_publish_schedule'] == true,
         timeline: (data['timeline'] as List? ?? const [])
             .whereType<Map>()
             .map((item) => Map<String, dynamic>.from(item))

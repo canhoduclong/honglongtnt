@@ -68,6 +68,29 @@ class OrderService {
     return _fetchAllOrders('/shipper/history');
   }
 
+  Future<Map<String, dynamic>> customers({
+    required String date,
+    required String sort,
+    required String direction,
+  }) async {
+    final response = await _api.getJson(
+      '/shipper/customers',
+      query: {'date': date, 'sort': sort, 'direction': direction},
+    );
+    return Map<String, dynamic>.from(response['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> deliveryStatistics({
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final response = await _api.getJson(
+      '/shipper/delivery-statistics',
+      query: {'from_date': fromDate, 'to_date': toDate},
+    );
+    return Map<String, dynamic>.from(response['data'] as Map);
+  }
+
   Future<void> acceptOrder(int orderId) async {
     await _api.postJson('/shipper/orders/$orderId/accept');
   }

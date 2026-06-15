@@ -6,6 +6,8 @@ import '../../controllers/order_controller.dart';
 import '../role/role_layout.dart';
 import '../orders/my_orders_screen.dart';
 import 'delivery_schedule_screen.dart';
+import 'delivery_statistics_screen.dart';
+import 'shipper_customers_screen.dart';
 import 'shipper_home_screen.dart';
 
 class ShipperLayout extends StatefulWidget {
@@ -35,7 +37,7 @@ class _ShipperLayoutState extends State<ShipperLayout> {
     final args = Get.arguments;
     if (args is! Map) return;
     final tab = int.tryParse('${args['tab'] ?? ''}');
-    if (tab == null || tab < 0 || tab >= 3 || tab == _index) {
+    if (tab == null || tab < 0 || tab >= 5 || tab == _index) {
       return;
     }
     setState(() => _index = tab);
@@ -48,6 +50,8 @@ class _ShipperLayoutState extends State<ShipperLayout> {
       ShipperHomeScreen(onScheduleConfirmed: () => setState(() => _index = 1)),
       const MyOrdersScreen(),
       DeliveryScheduleScreen(onConfirmed: () => setState(() => _index = 1)),
+      const ShipperCustomersScreen(),
+      const DeliveryStatisticsScreen(),
     ];
 
     return Scaffold(
@@ -111,6 +115,14 @@ class _ShipperLayoutState extends State<ShipperLayout> {
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.route_rounded),
+                  label: 'Lộ trình',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.people_rounded),
+                  label: 'Khách hàng',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.table_chart_rounded),
                   label: 'Thống kê',
                 ),
               ],

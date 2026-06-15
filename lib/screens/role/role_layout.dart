@@ -528,21 +528,31 @@ class _RoleScreenState extends State<RoleScreen> {
               if (data.cards.isNotEmpty) const SizedBox(height: 16),
               if (widget.menu.key == 'manage_assignments') ...[
                 FilledButton.icon(
-                  onPressed: () async {
-                    try {
-                      await Get.find<RoleScreenService>()
-                          .createDeliverySchedules();
-                      await _refresh();
-                      Get.snackbar(
-                        'Thành công',
-                        'Đã gửi lịch trình cho các shipper',
-                      );
-                    } catch (error) {
-                      Get.snackbar('Lỗi', error.toString());
-                    }
-                  },
+                  onPressed: !data.canPublishSchedule
+                      ? null
+                      : () async {
+                          try {
+                            await Get.find<RoleScreenService>()
+                                .createDeliverySchedules(
+                                  date: DateFormat(
+                                    'yyyy-MM-dd',
+                                  ).format(_selectedDate),
+                                );
+                            await _refresh();
+                            Get.snackbar(
+                              'Thành công',
+                              'Đã gửi lịch trình cho các shipper',
+                            );
+                          } catch (error) {
+                            Get.snackbar('Lỗi', error.toString());
+                          }
+                        },
                   icon: const Icon(Icons.route_rounded),
-                  label: const Text('Hoàn tất và gửi lịch trình'),
+                  label: Text(
+                    data.canPublishSchedule
+                        ? 'Hoàn tất và gửi lịch trình'
+                        : 'Đã gửi lịch trình',
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
