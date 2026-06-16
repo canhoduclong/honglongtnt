@@ -58,9 +58,13 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> postJson(String path, {Object? data}) async {
+  Future<Map<String, dynamic>> postJson(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? query,
+  }) async {
     try {
-      final response = await dio.post(path, data: data);
+      final response = await dio.post(path, data: data, queryParameters: query);
       return _normalize(response);
     } on DioException catch (error) {
       throw _toApiException(error);

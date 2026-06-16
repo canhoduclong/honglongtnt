@@ -5,7 +5,9 @@ import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
 
 class HoangLongTntApp extends StatelessWidget {
-  const HoangLongTntApp({super.key});
+  const HoangLongTntApp({super.key, this.initialRoute = AppRoutes.splash});
+
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +16,7 @@ class HoangLongTntApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Hoàng Long TNT',
-      initialRoute: AppRoutes.splash,
+      initialRoute: initialRoute,
       getPages: AppPages.pages,
       theme: ThemeData(
         useMaterial3: true,

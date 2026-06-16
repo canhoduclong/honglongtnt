@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../widgets/app_logo.dart';
@@ -30,6 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _emailController.text.trim(),
       _passwordController.text,
     );
+  }
+
+  Future<void> _openContact() async {
+    final uri = Uri.parse('https://hoanglongtnt.com/lien-he');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -243,6 +249,28 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      TextButton.icon(
+                        onPressed: _openContact,
+                        icon: const Icon(Icons.support_agent_rounded),
+                        label: const Text('Liên hệ hỗ trợ'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: primary,
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Copyright © 2026 Hoang Long TNT',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

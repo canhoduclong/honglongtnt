@@ -24,6 +24,7 @@ class _SaleScreenState extends State<SaleScreen> {
   String _filter = '';
   String _sort = 'created_at';
   bool _trash = false;
+  List<Map<String, dynamic>> _visibleItems = const [];
 
   SaleService get _service => Get.find<SaleService>();
   bool get _customers => widget.menu.key == 'customers';
@@ -58,8 +59,9 @@ class _SaleScreenState extends State<SaleScreen> {
   }
 
   void _load() {
+    late Future<SaleListData> nextFuture;
     if (_customers) {
-      _future = _service.customers(
+      nextFuture = _service.customers(
         search: _search.text,
         tab: _trash
             ? 'trash'
@@ -69,21 +71,31 @@ class _SaleScreenState extends State<SaleScreen> {
         sortBy: _sort,
       );
     } else if (_drafts) {
-      _future = _service.draftOrders();
+      nextFuture = _service.draftOrders();
     } else if (_orders) {
-      _future = _service.orders(
+      nextFuture = _service.orders(
         search: _search.text,
         status: _filter,
         trash: _trash,
         sortBy: _sort,
       );
     } else {
-      _future = _service.approvals(
+      nextFuture = _service.approvals(
         widget.menu.key == 'team_approvals' ? 'leader' : 'manager',
         search: _search.text,
         status: _filter,
       );
     }
+    _future = nextFuture;
+    nextFuture
+        .then((data) {
+          if (!mounted) return;
+          setState(() => _visibleItems = data.items);
+        })
+        .catchError((_) {
+          if (!mounted) return;
+          setState(() => _visibleItems = const []);
+        });
   }
 
   Future<void> _refresh() async {
@@ -256,6 +268,28 @@ class _SaleScreenState extends State<SaleScreen> {
                       ),
                   ],
                 ),
+                if (!_customers) ...[
+                  IconButton(
+                    tooltip: 'Hàng - Số lượng',
+                    onPressed: _visibleItems.isEmpty
+                        ? null
+                        : () => _showProductSummary(_visibleItems),
+                    icon: const Icon(Icons.inventory_2_outlined),
+                  ),
+                ],
+                if (_approvals) ...[
+                  const SizedBox(width: 4),
+                  FilledButton.icon(
+                    onPressed:
+                        _visibleItems.any(
+                          (order) => order['can_approve'] == true,
+                        )
+                        ? _approveAll
+                        : null,
+                    icon: const Icon(Icons.done_all_rounded, size: 18),
+                    label: const Text('Duyệt tất cả'),
+                  ),
+                ],
                 if (!_approvals && !_drafts)
                   FilterChip(
                     selected: _trash,
@@ -729,6 +763,126 @@ class _SaleScreenState extends State<SaleScreen> {
     final id = _num(order['id']).toInt();
     await _run(
       () => approve ? _service.approve(id, note) : _service.reject(id, note),
+    );
+  }
+
+  Future<void> _approveAll() async {
+    final count = _visibleItems
+        .where((order) => order['can_approve'] == true)
+        .length;
+    if (count <= 0) return;
+    final confirmed = await _confirm(
+      'Duyệt tất cả đơn đang tới lượt bạn theo bộ lọc hiện tại?',
+    );
+    if (!confirmed) return;
+
+    final scope = widget.menu.key == 'team_approvals' ? 'leader' : 'manager';
+    try {
+      final result = await _service.approveAll(
+        scope,
+        'Duyệt tất cả từ mobile',
+        search: _search.text,
+        status: _filter,
+      );
+      final approved = _num(result['approved']).toInt();
+      final failed = _num(result['failed']).toInt();
+      Get.snackbar(
+        'Đã duyệt tất cả',
+        failed > 0
+            ? 'Đã duyệt $approved đơn, $failed đơn không thể duyệt.'
+            : 'Đã duyệt $approved đơn.',
+      );
+      await _refresh();
+    } catch (error) {
+      Get.snackbar('Không thể duyệt tất cả', error.toString());
+    }
+  }
+
+  Future<void> _showProductSummary(List<Map<String, dynamic>> orders) async {
+    final rows = _productSummaryRows(orders);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: .55,
+        maxChildSize: .88,
+        builder: (_, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.inventory_2_outlined),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Hàng - Số lượng',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text('${orders.length} đơn'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (rows.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 28),
+                child: Center(child: Text('Chưa có dòng sản phẩm.')),
+              )
+            else
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: DataTable(
+                    headingRowHeight: 38,
+                    dataRowMinHeight: 42,
+                    dataRowMaxHeight: 58,
+                    horizontalMargin: 10,
+                    columnSpacing: 14,
+                    columns: const [
+                      DataColumn(label: Text('Hàng')),
+                      DataColumn(label: Text('Size')),
+                      DataColumn(label: Text('SL'), numeric: true),
+                    ],
+                    rows: [
+                      for (final row in rows)
+                        DataRow(
+                          cells: [
+                            DataCell(
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minWidth: 160,
+                                  maxWidth: 230,
+                                ),
+                                child: Text(
+                                  row.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(Text(row.size)),
+                            DataCell(Text(_formatQuantity(row.quantity))),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1793,6 +1947,18 @@ class _OrderItemsTable extends StatelessWidget {
   }
 }
 
+class _ProductSummaryRow {
+  const _ProductSummaryRow({
+    required this.name,
+    required this.size,
+    required this.quantity,
+  });
+
+  final String name;
+  final String size;
+  final num quantity;
+}
+
 class _Info extends StatelessWidget {
   const _Info(this.icon, this.text);
 
@@ -1894,7 +2060,48 @@ String _itemSize(Map<String, dynamic> item) {
 
 String _quantity(Map<String, dynamic> item) {
   final value = _num(item['quantity']);
+  return _formatQuantity(value);
+}
+
+String _formatQuantity(num value) {
   return value == value.roundToDouble()
       ? value.toInt().toString()
       : value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+}
+
+List<_ProductSummaryRow> _productSummaryRows(
+  List<Map<String, dynamic>> orders,
+) {
+  final totals = <String, ({String name, String size, num quantity})>{};
+
+  for (final order in orders) {
+    for (final item in _list(order['items'])) {
+      final name = _productName(item).trim();
+      final size = _itemSize(item);
+      final key = '${name.toLowerCase()}|${size.toLowerCase()}';
+      final current = totals[key];
+      totals[key] = (
+        name: name.isEmpty ? 'Sản phẩm' : name,
+        size: size,
+        quantity: (current?.quantity ?? 0) + _num(item['quantity']),
+      );
+    }
+  }
+
+  final rows = totals.values
+      .map(
+        (row) => _ProductSummaryRow(
+          name: row.name,
+          size: row.size,
+          quantity: row.quantity,
+        ),
+      )
+      .toList();
+  rows.sort((a, b) {
+    final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    return byName != 0
+        ? byName
+        : a.size.toLowerCase().compareTo(b.size.toLowerCase());
+  });
+  return rows;
 }

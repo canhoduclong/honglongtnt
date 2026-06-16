@@ -218,6 +218,21 @@ class SaleService {
     await _api.postJson('/sale/approvals/$id/approve', data: {'note': note});
   }
 
+  Future<Map<String, dynamic>> approveAll(
+    String scope,
+    String note, {
+    String search = '',
+    String status = '',
+  }) async {
+    return _data(
+      await _api.postJson(
+        '/sale/approvals/$scope/approve-all',
+        data: {'note': note},
+        query: {'search': search, 'status': status},
+      ),
+    );
+  }
+
   Future<void> reject(int id, String note) async {
     await _api.postJson('/sale/approvals/$id/reject', data: {'note': note});
   }

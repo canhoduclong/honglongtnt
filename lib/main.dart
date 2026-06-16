@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'app.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/order_controller.dart';
+import 'routes/app_routes.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/order_service.dart';
@@ -45,5 +46,9 @@ Future<void> main() async {
     permanent: true,
   );
 
-  runApp(const HoangLongTntApp());
+  final initialRoute = (storage.token ?? '').isEmpty
+      ? AppRoutes.login
+      : AppRoutes.splash;
+
+  runApp(HoangLongTntApp(initialRoute: initialRoute));
 }
