@@ -210,12 +210,44 @@ def slide_reports():
     return image
 
 
+def slide_login():
+    image, draw = frame(
+        "Đăng nhập minh bạch\nsẵn sàng cho App Review",
+        "Hiển thị liên hệ hỗ trợ, chính sách bảo mật và copyright ngay tại màn đăng nhập.",
+        "Đăng nhập",
+    )
+    logo = Image.open(ROOT / "hl-logo.png").convert("RGBA").resize((150, 150))
+    image.alpha_composite(logo, (1050, 860))
+    draw_text(draw, (1125, 1058), "Hoàng Long TNT", 42, "#083F3A", True, "ma", "center")
+    draw_text(draw, (1125, 1124), "Đăng nhập hệ thống vận hành", 28, SLATE, False, "ma", "center")
+    card(draw, (625, 1215, 1625, 1945), fill=WHITE, outline=WHITE, radius=34)
+    draw.rounded_rectangle((680, 1280, 748, 1348), 18, "#E5F7F2")
+    draw_text(draw, (714, 1314), "✓", 34, TEAL, True, "mm", "center")
+    draw_text(draw, (780, 1278), "Chào mừng trở lại", 34, DARK, True)
+    draw_text(draw, (780, 1328), "Sử dụng tài khoản được cấp", 26, SLATE)
+    for y, label in ((1435, "Số điện thoại hoặc email"), (1570, "Mật khẩu")):
+        draw.rounded_rectangle((680, y, 1570, y + 88), 18, "#F8FAFC", "#E2E8F0", width=2)
+        draw_text(draw, (730, y + 44), "•", 34, TEAL, True, "lm")
+        draw_text(draw, (780, y + 44), label, 27, "#475569", False, "lm")
+    draw.rectangle((692, 1705, 730, 1743), fill=WHITE, outline=TEAL, width=3)
+    draw_text(draw, (760, 1724), "Ghi nhớ đăng nhập", 26, DARK, False, "lm")
+    draw.rounded_rectangle((680, 1800, 1570, 1888), 22, TEAL)
+    draw_text(draw, (1125, 1844), "Đăng nhập", 30, WHITE, True, "mm", "center")
+    draw_text(draw, (1125, 2045), "Liên hệ hỗ trợ  ·  Chính sách bảo mật", 30, TEAL, True, "ma", "center")
+    draw_text(draw, (1125, 2102), "Copyright © 2026 Hoang Long TNT", 24, SLATE, True, "ma", "center")
+    card(draw, (625, 2190, 1625, 2360), fill="#ECFDF5", outline="#BBF7D0", radius=28)
+    draw_text(draw, (675, 2240), "Thông tin hỗ trợ rõ ràng", 30, "#065F46", True)
+    draw_text(draw, (675, 2292), "Người dùng có thể xem chính sách quyền riêng tư và liên hệ hỗ trợ trước khi đăng nhập.", 24, "#047857")
+    return image
+
+
 slides = [
     ("01-dashboard.png", slide_dashboard),
     ("02-orders.png", slide_orders),
     ("03-inventory.png", slide_inventory),
     ("04-transfers.png", slide_transfers),
     ("05-reports.png", slide_reports),
+    ("06-login-policy.png", slide_login),
 ]
 
 for filename, renderer in slides:

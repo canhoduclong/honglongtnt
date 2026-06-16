@@ -38,6 +38,11 @@ class _LoginScreenState extends State<LoginScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  Future<void> _openPrivacyPolicy() async {
+    final uri = Uri.parse('https://hoanglongtnt.com/privacy-policy');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
@@ -252,16 +257,34 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      TextButton.icon(
-                        onPressed: _openContact,
-                        icon: const Icon(Icons.support_agent_rounded),
-                        label: const Text('Liên hệ hỗ trợ'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: primary,
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w800,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 6,
+                        runSpacing: 0,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _openContact,
+                            icon: const Icon(Icons.support_agent_rounded),
+                            label: const Text('Liên hệ hỗ trợ'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: primary,
+                              textStyle: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
-                        ),
+                          TextButton.icon(
+                            onPressed: _openPrivacyPolicy,
+                            icon: const Icon(Icons.privacy_tip_outlined),
+                            label: const Text('Chính sách bảo mật'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: primary,
+                              textStyle: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       const Text(

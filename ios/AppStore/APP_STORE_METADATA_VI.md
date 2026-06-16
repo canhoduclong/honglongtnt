@@ -6,7 +6,7 @@
 - **Phụ đề:** Quản lý vận hành thông minh
 - **Danh mục chính:** Business
 - **Danh mục phụ:** Productivity
-- **Phiên bản hiện tại:** 1.0.22
+- **Phiên bản hiện tại:** 1.0.28
 
 ## Promotional Text
 
@@ -28,6 +28,8 @@ Hoàng Long TNT là ứng dụng quản lý vận hành dành cho nhân sự và
 - Phối hợp giao nhận giữa kho và shipper.
 - Nhận thông báo về các thay đổi nghiệp vụ cần xử lý.
 - Theo dõi báo cáo vận hành và hiệu suất mọi lúc.
+- Truy cập thông tin liên hệ hỗ trợ và chính sách quyền riêng tư ngay từ màn đăng nhập.
+- Footer ứng dụng hiển thị copyright rõ ràng, phù hợp yêu cầu minh bạch thông tin.
 
 Để sử dụng ứng dụng, người dùng cần có tài khoản hợp lệ do Hoàng Long TNT cung cấp.
 
@@ -37,10 +39,10 @@ hoang long,tnt,quan ly kho,don hang,giao hang,shipper,van hanh,ton kho
 
 ## What's New
 
-- Bổ sung tồn kho tổng hợp giữa các kho.
-- Cải thiện quy trình điều chuyển kho và lựa chọn shipper.
-- Tối ưu hiển thị đơn hàng và thứ tự ưu tiên.
-- Nâng cao hiệu năng và độ ổn định.
+- Bổ sung thông tin liên hệ hỗ trợ, chính sách bảo mật và copyright tại màn đăng nhập.
+- Cập nhật tiện ích sale: xem tổng hợp Hàng - Số lượng và duyệt tất cả đơn phù hợp quyền.
+- Tối ưu luồng đăng nhập và điều hướng ban đầu.
+- Cải thiện độ ổn định và đồng bộ phiên bản ứng dụng.
 
 ## Support / Marketing
 
@@ -57,18 +59,19 @@ hoang long,tnt,quan ly kho,don hang,giao hang,shipper,van hanh,ton kho
 
 ## Gợi ý nội dung screenshot
 
-Sử dụng 5 ảnh trong `upload-ready/iphone-6.7/`, theo đúng thứ tự:
+Sử dụng 6 ảnh trong `upload-ready/iphone-6.7/`, theo đúng thứ tự:
 
 1. `01-dashboard.png` - Một ứng dụng cho toàn bộ vận hành
 2. `02-orders.png` - Xử lý đơn hàng nhanh và rõ ràng
 3. `03-inventory.png` - Tồn kho hợp nhất giữa mọi kho
 4. `04-transfers.png` - Điều chuyển và giao nhận không gián đoạn
 5. `05-reports.png` - Báo cáo tức thời, quyết định nhanh hơn
+6. `06-login-policy.png` - Đăng nhập an toàn, đầy đủ liên hệ và chính sách
 
 ## Ghi chú trước khi gửi duyệt
 
 - Xác nhận tài khoản demo cho đội ngũ App Review nếu ứng dụng yêu cầu đăng nhập.
 - Cung cấp hướng dẫn đăng nhập và vai trò có thể kiểm tra.
-- Triển khai và kiểm tra URL `https://hoanglongtnt.com/privacy-policy` truy cập công khai. Hiện URL này đang trả về `404` trên production.
+- Kiểm tra URL `https://hoanglongtnt.com/privacy-policy` và `https://hoanglongtnt.com/lien-he` truy cập công khai trước khi gửi duyệt.
 - Kiểm tra quyền truy cập ảnh/camera và nội dung giải thích trong `Info.plist`.
 - Xác nhận version/build number không trùng bản đã tải lên.

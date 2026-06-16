@@ -85,6 +85,7 @@ slides = [
     ("Tồn kho hợp nhất\ngiữa mọi kho", "Nắm rõ tồn đầu, nhập, xuất, book và available trong một màn hình.", "Tồn kho tổng hợp"),
     ("Điều chuyển và giao nhận\nkhông gián đoạn", "Phối hợp kho và shipper theo từng trạng thái bàn giao.", "Điều chuyển kho"),
     ("Báo cáo tức thời\nquyết định nhanh hơn", "Theo dõi hiệu suất và sản lượng mọi lúc, mọi nơi.", "Báo cáo vận hành"),
+    ("Đăng nhập an toàn\nđầy đủ thông tin hỗ trợ", "Footer hiển thị liên hệ, chính sách bảo mật và copyright rõ ràng.", "Đăng nhập"),
 ]
 
 for idx, (title, subtitle, screen) in enumerate(slides, 1):
@@ -140,7 +141,7 @@ for idx, (title, subtitle, screen) in enumerate(slides, 1):
             text(draw,(232,y+27),n,22,WHITE,True,"mm")
             text(draw,(290,y+4),label,25,DARK,True)
             text(draw,(1110,y+5),value,22,SLATE,False,"ra")
-    else:
+    elif idx == 5:
         metric(draw, 165, 930, "+18%", "Sản lượng tuần này")
         metric(draw, 680, 930, "96%", "Đơn hoàn thành")
         text(draw, (165, 1230), "SẢN LƯỢNG 7 NGÀY", 28, "#5B2E24", True)
@@ -154,5 +155,28 @@ for idx, (title, subtitle, screen) in enumerate(slides, 1):
         for y, label, value in ((2025,"Đơn đã đóng gói","42"),(2120,"Đơn đang vận chuyển","26"),(2215,"Phiếu điều chuyển hoàn tất","12"),(2310,"Tồn kho khả dụng","2.778")):
             text(draw,(205,y),label,25)
             text(draw,(1115,y),value,26,TEAL,True,"ra")
+    else:
+        logo = Image.open(ROOT / "hl-logo.png").convert("RGBA").resize((130, 130))
+        image.alpha_composite(logo, (595, 915))
+        text(draw, (660, 1095), "Hoàng Long TNT", 38, "#083F3A", True, "ma")
+        text(draw, (660, 1155), "Đăng nhập hệ thống vận hành", 25, SLATE, False, "ma")
+        card(draw, (190, 1240, 1130, 2025), fill="#FFFFFF", outline="#FFFFFF", radius=34)
+        draw.rounded_rectangle((240, 1305, 300, 1365), 16, "#E5F7F2")
+        text(draw, (270, 1335), "✓", 28, TEAL, True, "mm")
+        text(draw, (330, 1300), "Chào mừng trở lại", 29, DARK, True)
+        text(draw, (330, 1344), "Sử dụng tài khoản được cấp", 23, SLATE)
+        for y, label in ((1450, "Số điện thoại hoặc email"), (1585, "Mật khẩu")):
+            draw.rounded_rectangle((240, y, 1080, y + 86), 18, "#F8FAFC", "#E2E8F0", width=2)
+            text(draw, (280, y + 43), "•", 30, TEAL, True, "lm")
+            text(draw, (335, y + 43), label, 24, "#475569", False, "lm")
+        draw.rectangle((250, 1718, 286, 1754), fill="#FFFFFF", outline=TEAL, width=3)
+        text(draw, (310, 1736), "Ghi nhớ đăng nhập", 23, DARK, False, "lm")
+        draw.rounded_rectangle((240, 1820, 1080, 1905), 22, TEAL)
+        text(draw, (660, 1862), "Đăng nhập", 27, WHITE, True, "mm")
+        text(draw, (660, 2110), "Liên hệ hỗ trợ  ·  Chính sách bảo mật", 25, TEAL, True, "ma")
+        text(draw, (660, 2160), "Copyright © 2026 Hoang Long TNT", 21, SLATE, True, "ma")
+        card(draw, (190, 2240, 1130, 2415), fill="#ECFDF5", outline="#BBF7D0", radius=28)
+        text(draw, (235, 2288), "Thông tin minh bạch cho người dùng", 27, "#065F46", True)
+        text(draw, (235, 2340), "Có sẵn đường dẫn liên hệ hỗ trợ và chính sách quyền riêng tư trước khi đăng nhập.", 22, "#047857")
     image.convert("RGB").save(OUT / f"0{idx}.png", quality=96)
     print(OUT / f"0{idx}.png")

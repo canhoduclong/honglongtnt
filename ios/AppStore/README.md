@@ -2,7 +2,7 @@
 
 ## Screenshots sẵn sàng tải lên
 
-Tải 5 ảnh trong `upload-ready/iphone-6.7/` lên App Store Connect. Toàn bộ ảnh có
+Tải 6 ảnh trong `upload-ready/iphone-6.7/` lên App Store Connect. Toàn bộ ảnh có
 kích thước portrait `1284x2778`, nằm trong danh sách kích thước Apple chấp nhận:
 
 - `01-dashboard.png`
@@ -10,11 +10,12 @@ kích thước portrait `1284x2778`, nằm trong danh sách kích thước Apple
 - `03-inventory.png`
 - `04-transfers.png`
 - `05-reports.png`
+- `06-login-policy.png`
 
 Không tải thư mục `screenshots/iphone-6.9/` lên form hiện tại vì ảnh trong đó có
 kích thước `1320x2868`, không thuộc các kích thước mà App Store Connect đang yêu cầu.
 
-Apple cho phép tối đa 10 screenshot, nhưng không bắt buộc đủ 10 ảnh. Bộ 5 ảnh hiện
+Apple cho phép tối đa 10 screenshot, nhưng không bắt buộc đủ 10 ảnh. Bộ 6 ảnh hiện
 tại đã bao quát các tính năng chính và có thể dùng để gửi duyệt.
 
 File `upload-ready/hoang-long-tnt-app-store-screenshots.zip` chứa cùng bộ 5 ảnh
@@ -39,7 +40,7 @@ Nội dung có thể dán trực tiếp vào App Store Connect nằm trong
 ## Files
 
 - `APP_STORE_METADATA_VI.md`: Nội dung đề xuất để điền App Store Connect.
-- `upload-ready/iphone-6.7/`: Bộ 5 screenshot đúng kích thước để tải lên.
+- `upload-ready/iphone-6.7/`: Bộ 6 screenshot đúng kích thước để tải lên.
 - `upload-ready/hoang-long-tnt-app-store-screenshots.zip`: File nén của bộ screenshot.
 - `source/store_screenshots.html`: Nguồn dựng screenshot.
 - `source/marketing-background.png`: Nền marketing tạo bằng imagegen.
