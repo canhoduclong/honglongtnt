@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../models/user_model.dart';
 import '../../services/sale_service.dart';
@@ -363,6 +364,10 @@ class _SaleScreenState extends State<SaleScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (priority > 0) ...[
+                    _PriorityBadge(priority),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,17 +386,21 @@ class _SaleScreenState extends State<SaleScreen> {
                       ],
                     ),
                   ),
-                  if (priority > 0) ...[
-                    _PriorityBadge(priority),
-                    const SizedBox(width: 8),
-                  ],
-                  _Status('${order['status'] ?? ''}'),
                 ],
               ),
               const SizedBox(height: 8),
-              _Info(
-                Icons.schedule_outlined,
-                'Lên đơn: ${Formatters.dateTime('${order['created_at'] ?? ''}')}',
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: _Info(
+                      Icons.schedule_outlined,
+                      'Lên đơn: ${Formatters.dateTime('${order['created_at'] ?? ''}')}',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _Status('${order['status'] ?? ''}'),
+                ],
               ),
               const SizedBox(height: 4),
               _Info(
@@ -399,8 +408,8 @@ class _SaleScreenState extends State<SaleScreen> {
                 'Ngày giao: ${order['delivery_date'] ?? 'Chưa cập nhật'}',
               ),
               if (items.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                for (final item in items) _OrderItemSummary(item: item),
+                const SizedBox(height: 10),
+                _OrderItemsTable(items: items),
               ],
               const Divider(),
               Row(
@@ -447,6 +456,11 @@ class _SaleScreenState extends State<SaleScreen> {
                           value: 'copy',
                           child: Text('Copy đơn'),
                         ),
+                        if (!_trash && order['can_customer_feedback'] == true)
+                          const PopupMenuItem(
+                            value: 'customer_feedback',
+                            child: Text('Feedback'),
+                          ),
                         if (!_trash && order['can_edit'] == true)
                           const PopupMenuItem(
                             value: 'edit',
@@ -527,6 +541,20 @@ class _SaleScreenState extends State<SaleScreen> {
       if (reason == null) return;
       return _run(() => _service.cancelOrder(id, reason));
     }
+    if (action == 'customer_feedback') {
+      final feedback = await _askCustomerFeedback(order);
+      if (feedback == null) return;
+      return _run(
+        () => _service.updateOrderCustomerFeedback(
+          id,
+          status: feedback.$1,
+          note: feedback.$2,
+          saleReview: feedback.$3,
+          reset: feedback.$4,
+          imagePaths: feedback.$5,
+        ),
+      );
+    }
     if (!await _confirm(
       action == 'trash' ? 'Chuyển đơn vào thùng rác?' : 'Xác nhận đơn copy?',
     )) {
@@ -537,6 +565,130 @@ class _SaleScreenState extends State<SaleScreen> {
           ? _service.trashOrder(id)
           : _service.confirmCopy(id),
     );
+  }
+
+  Future<(String, String, String, bool, List<String>)?> _askCustomerFeedback(
+    Map<String, dynamic> order,
+  ) async {
+    var status = '${order['customer_feedback_status'] ?? 'careful'}';
+    if (!['good', 'careful', 'risk'].contains(status)) status = 'careful';
+    final note = TextEditingController(
+      text: '${order['customer_feedback_note'] ?? ''}',
+    );
+    final saleReview = TextEditingController(
+      text: '${order['customer_feedback_sale_review'] ?? ''}',
+    );
+    final picker = ImagePicker();
+    final imagePaths = <String>[];
+
+    final result =
+        await showDialog<(String, String, String, bool, List<String>)>(
+          context: context,
+          builder: (context) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: const Text('Phản hồi khách hàng'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: status,
+                    decoration: const InputDecoration(
+                      labelText: 'Tình trạng',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'good',
+                        child: Text('Khách ổn định'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'careful',
+                        child: Text('Cần đóng kỹ'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'risk',
+                        child: Text('Rủi ro/khó tính'),
+                      ),
+                    ],
+                    onChanged: (value) =>
+                        setDialogState(() => status = value ?? 'careful'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: note,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      labelText: 'Phản hồi từ khách hàng',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: saleReview,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Đánh giá đơn hàng từ sale',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await picker.pickMultiImage(
+                        imageQuality: 82,
+                      );
+                      if (picked.isEmpty) return;
+                      setDialogState(() {
+                        imagePaths
+                          ..clear()
+                          ..addAll(picked.map((file) => file.path).take(6));
+                      });
+                    },
+                    icon: const Icon(Icons.image_outlined),
+                    label: Text(
+                      imagePaths.isEmpty
+                          ? 'Upload hình ảnh'
+                          : '${imagePaths.length} ảnh đã chọn',
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, (
+                    status,
+                    '',
+                    '',
+                    true,
+                    <String>[],
+                  )),
+                  child: const Text('Reset'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final cleanNote = note.text.trim();
+                    if (cleanNote.isEmpty) return;
+                    Navigator.pop(context, (
+                      status,
+                      cleanNote,
+                      saleReview.text.trim(),
+                      false,
+                      List<String>.from(imagePaths),
+                    ));
+                  },
+                  child: const Text('Lưu'),
+                ),
+              ],
+            ),
+          ),
+        );
+    note.dispose();
+    saleReview.dispose();
+    return result;
   }
 
   Future<void> _draftAction(String action, Map<String, dynamic> draft) async {
@@ -1543,56 +1695,99 @@ class _PriorityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEDD5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF97316)),
+        color: const Color(0xFFF97316),
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFFEA580C), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF97316).withValues(alpha: .25),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Text(
-        'Ưu tiên #$number',
+        '$number',
         style: const TextStyle(
-          color: Color(0xFF9A3412),
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          fontSize: 17,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
   }
 }
 
-class _OrderItemSummary extends StatelessWidget {
-  const _OrderItemSummary({required this.item});
+class _OrderItemsTable extends StatelessWidget {
+  const _OrderItemsTable({required this.items});
 
-  final Map<String, dynamic> item;
+  final List<Map<String, dynamic>> items;
 
   @override
   Widget build(BuildContext context) {
-    final variant = _map(item['variant']);
-    final size = '${variant['size'] ?? item['size'] ?? ''}'.trim();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.inventory_2_outlined,
-            size: 17,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              [
-                _productName(item),
-                'Size ${size.isEmpty ? '-' : size}',
-                'SL ${item['quantity'] ?? 0}',
-                'Giá ${Formatters.money(_num(item['price']))}',
-              ].join(' | '),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+    final primary = Theme.of(context).colorScheme.primary;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            headingRowHeight: 38,
+            dataRowMinHeight: 42,
+            dataRowMaxHeight: 54,
+            horizontalMargin: 10,
+            columnSpacing: 16,
+            headingRowColor: WidgetStatePropertyAll(
+              primary.withValues(alpha: .08),
             ),
+            columns: const [
+              DataColumn(label: Text('Sản phẩm')),
+              DataColumn(label: Text('Size')),
+              DataColumn(label: Text('SL'), numeric: true),
+              DataColumn(label: Text('Đơn giá'), numeric: true),
+            ],
+            rows: [
+              for (final item in items)
+                DataRow(
+                  cells: [
+                    DataCell(
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minWidth: 150,
+                          maxWidth: 220,
+                        ),
+                        child: Text(
+                          _productName(item),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                    DataCell(Text(_itemSize(item))),
+                    DataCell(Text(_quantity(item))),
+                    DataCell(
+                      Text(
+                        Formatters.money(_num(item['price'])),
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1689,4 +1884,17 @@ String _productName(Map<String, dynamic> item) {
   final product = _map(item['product']);
   final variant = _map(item['variant']);
   return '${product['name'] ?? variant['name'] ?? item['name'] ?? 'Sản phẩm'}';
+}
+
+String _itemSize(Map<String, dynamic> item) {
+  final variant = _map(item['variant']);
+  final value = '${variant['size'] ?? item['size'] ?? ''}'.trim();
+  return value.isEmpty ? '-' : value;
+}
+
+String _quantity(Map<String, dynamic> item) {
+  final value = _num(item['quantity']);
+  return value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
 }

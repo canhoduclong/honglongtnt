@@ -2636,6 +2636,19 @@ class WarehouseOrderCard extends StatelessWidget {
                     subtitle: order.adjustmentRejectedReason,
                   ),
                 ],
+                if (order.customerFeedbackHasItems) ...[
+                  const SizedBox(height: 10),
+                  _OrderAlert(
+                    color: order.customerFeedbackStatus == 'risk'
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFFF59E0B),
+                    title:
+                        'Tình trạng khách hàng: ${order.customerFeedbackLabel}',
+                    subtitle: order.customerFeedbackSaleReview.isEmpty
+                        ? order.customerFeedbackNote
+                        : '${order.customerFeedbackNote}\nSale: ${order.customerFeedbackSaleReview}',
+                  ),
+                ],
                 const SizedBox(height: 12),
                 _OrderItemsTable(order: order, onChanged: onChanged),
               ],
@@ -3517,6 +3530,11 @@ class WarehouseOrderData {
     required this.canCompletePacking,
     required this.canUndoStartPacking,
     required this.warehouseCanAdjust,
+    required this.customerFeedbackStatus,
+    required this.customerFeedbackLabel,
+    required this.customerFeedbackNote,
+    required this.customerFeedbackSaleReview,
+    required this.customerFeedbackHasItems,
     required this.items,
   });
 
@@ -3542,6 +3560,11 @@ class WarehouseOrderData {
   final bool canCompletePacking;
   final bool canUndoStartPacking;
   final bool warehouseCanAdjust;
+  final String customerFeedbackStatus;
+  final String customerFeedbackLabel;
+  final String customerFeedbackNote;
+  final String customerFeedbackSaleReview;
+  final bool customerFeedbackHasItems;
   final List<WarehouseOrderItemData> items;
 
   String get sequenceLabel => sequence > 0 ? '$sequence' : '—';
@@ -3549,6 +3572,18 @@ class WarehouseOrderData {
   factory WarehouseOrderData.fromItem(RoleListItemData item) {
     final raw = item.raw;
     final customer = raw['customer'] is Map ? raw['customer'] as Map : const {};
+    final feedback = raw['customer_feedback_context'] is Map
+        ? raw['customer_feedback_context'] as Map
+        : const {};
+    final feedbackMeta = feedback['highest_meta'] is Map
+        ? feedback['highest_meta'] as Map
+        : const {};
+    final feedbackRecent = feedback['recent'] is List
+        ? feedback['recent'] as List
+        : const [];
+    final firstFeedback = feedbackRecent.whereType<Map>().isNotEmpty
+        ? feedbackRecent.whereType<Map>().first
+        : const {};
     final items = (raw['items'] as List? ?? const [])
         .whereType<Map<String, dynamic>>()
         .map(WarehouseOrderItemData.fromJson)
@@ -3583,6 +3618,13 @@ class WarehouseOrderData {
       canCompletePacking: raw['can_complete_packing'] == true,
       canUndoStartPacking: raw['can_undo_start_packing'] == true,
       warehouseCanAdjust: raw['warehouse_can_adjust'] == true,
+      customerFeedbackStatus: (feedback['highest_status'] ?? '').toString(),
+      customerFeedbackLabel: (feedbackMeta['label'] ?? 'Chưa có phản hồi')
+          .toString(),
+      customerFeedbackNote: (firstFeedback['note'] ?? '').toString(),
+      customerFeedbackSaleReview: (firstFeedback['sale_review'] ?? '')
+          .toString(),
+      customerFeedbackHasItems: feedback['has_feedback'] == true,
       items: items,
     );
   }

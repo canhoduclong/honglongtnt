@@ -630,7 +630,7 @@ class RoleScreenData {
 String _metricLabel(String key) {
   return switch (key) {
     'ready_to_pack' => 'Đơn cần đóng gói',
-    'packing' => 'Đang đóng gói',
+    'packing' => 'Đang đóng',
     'packed_waiting_pickup' => 'Chờ shipper nhận',
     'returning' => 'Đơn đang trả',
     'returns_today' => 'Đơn trả hôm nay',

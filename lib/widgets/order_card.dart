@@ -179,6 +179,69 @@ class OrderCard extends StatelessWidget {
                       ),
                     ),
               ],
+              if (order.hasCustomerFeedback) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    border: Border.all(color: const Color(0xFFF59E0B)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tình trạng khách hàng: ${order.customerFeedbackLabel ?? 'Cần lưu ý'}',
+                        style: const TextStyle(
+                          color: Color(0xFF92400E),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if ((order.customerFeedbackNote ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          order.customerFeedbackNote!,
+                          style: const TextStyle(color: Color(0xFF78350F)),
+                        ),
+                      ],
+                      if ((order.customerFeedbackSaleReview ?? '')
+                          .isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sale: ${order.customerFeedbackSaleReview!}',
+                          style: const TextStyle(
+                            color: Color(0xFF78350F),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                      if (order.customerFeedbackImages.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 54,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: order.customerFeedbackImages.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 8),
+                            itemBuilder: (_, index) => ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                order.customerFeedbackImages[index],
+                                width: 54,
+                                height: 54,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 10),
               if (order.deliverySchedule != null) ...[
                 Row(

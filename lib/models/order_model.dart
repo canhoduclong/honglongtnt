@@ -15,6 +15,11 @@ class OrderModel {
     this.deliveryTime,
     this.deliveryDate,
     this.dailySequence,
+    this.customerFeedbackStatus,
+    this.customerFeedbackNote,
+    this.customerFeedbackSaleReview,
+    this.customerFeedbackImages = const [],
+    this.customerFeedbackLabel,
     this.itemCount,
     this.items = const [],
     this.deliverySchedule,
@@ -33,6 +38,11 @@ class OrderModel {
   final String? deliveryTime;
   final String? deliveryDate;
   final int? dailySequence;
+  final String? customerFeedbackStatus;
+  final String? customerFeedbackNote;
+  final String? customerFeedbackSaleReview;
+  final List<String> customerFeedbackImages;
+  final String? customerFeedbackLabel;
   final int? itemCount;
   final List<OrderItemModel> items;
   final OrderDeliverySchedule? deliverySchedule;
@@ -67,6 +77,12 @@ class OrderModel {
       dailySequence: json['daily_sequence'] == null
           ? null
           : int.tryParse('${json['daily_sequence']}'),
+      customerFeedbackStatus: json['customer_feedback_status']?.toString(),
+      customerFeedbackNote: json['customer_feedback_note']?.toString(),
+      customerFeedbackSaleReview: json['customer_feedback_sale_review']
+          ?.toString(),
+      customerFeedbackImages: _feedbackImages(json['customer_feedback_images']),
+      customerFeedbackLabel: _feedbackLabel(json),
       itemCount: _itemCount(json['items']),
       items: _items(json['items']),
       deliverySchedule: json['delivery_schedule'] is Map<String, dynamic>
@@ -92,6 +108,33 @@ class OrderModel {
     return items
         .whereType<Map<String, dynamic>>()
         .map(OrderItemModel.fromJson)
+        .toList();
+  }
+
+  bool get hasCustomerFeedback =>
+      (customerFeedbackNote ?? '').trim().isNotEmpty ||
+      (customerFeedbackStatus ?? '').trim().isNotEmpty;
+
+  static String? _feedbackLabel(Map<String, dynamic> json) {
+    final meta = json['customer_feedback_meta'];
+    if (meta is Map && meta['label'] != null) return meta['label'].toString();
+
+    return switch ((json['customer_feedback_status'] ?? '').toString()) {
+      'good' => 'Khách ổn định',
+      'careful' => 'Cần đóng kỹ',
+      'risk' => 'Rủi ro/khó tính',
+      _ => null,
+    };
+  }
+
+  static List<String> _feedbackImages(Object? value) {
+    if (value is! List) return const [];
+    return value
+        .map((item) {
+          if (item is Map && item['url'] != null) return item['url'].toString();
+          return item.toString();
+        })
+        .where((url) => url.isNotEmpty)
         .toList();
   }
 }

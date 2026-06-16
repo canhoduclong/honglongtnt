@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import 'api_service.dart';
 
 class SaleService {
@@ -144,6 +146,41 @@ class SaleService {
 
   Future<void> updateOrder(int id, Map<String, dynamic> data) async {
     await _api.putJson('/sale/orders/$id', data: data);
+  }
+
+  Future<void> updateOrderCustomerFeedback(
+    int id, {
+    required String status,
+    required String note,
+    String saleReview = '',
+    bool reset = false,
+    List<String> imagePaths = const [],
+  }) async {
+    if (imagePaths.isEmpty) {
+      await _api.postJson(
+        '/sale/orders/$id/customer-feedback',
+        data: {
+          'customer_feedback_status': status,
+          'customer_feedback_note': note,
+          'customer_feedback_sale_review': saleReview,
+          'reset_feedback': reset ? 1 : 0,
+        },
+      );
+      return;
+    }
+
+    await _api.postForm(
+      '/sale/orders/$id/customer-feedback',
+      FormData.fromMap({
+        'customer_feedback_status': status,
+        'customer_feedback_note': note,
+        'customer_feedback_sale_review': saleReview,
+        'reset_feedback': reset ? 1 : 0,
+        'customer_feedback_images[]': [
+          for (final path in imagePaths) await MultipartFile.fromFile(path),
+        ],
+      }),
+    );
   }
 
   Future<int?> copyOrder(int id) async {
