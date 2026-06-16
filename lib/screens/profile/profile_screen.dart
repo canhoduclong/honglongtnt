@@ -113,6 +113,69 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 14),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Thông tin liên hệ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Icon(Icons.phone_rounded, size: 20, color: Colors.blueGrey),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text('+84 93 145 36 66'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Icon(Icons.email_rounded, size: 20, color: Colors.blueGrey),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text('thucphamhoanglongtnt@gmail.com'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Icon(Icons.location_on_rounded, size: 20, color: Colors.blueGrey),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text('177c Chiến Lược, Bình Trị Đông, Bình Tân, TP. Hồ Chí Minh'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    const Center(
+                      child: Text(
+                        'Copyright@ 2026 Hoang Long TNT',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: auth.isLoading.value ? null : auth.logout,
